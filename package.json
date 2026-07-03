@@ -1,0 +1,23 @@
+{
+  "name": "techathon2026-alt-f4",
+  "version": "0.1.0",
+  "private": true,
+  "description": "PowerDown - a real-time office energy digital twin by Team ALT+F4",
+  "scripts": {
+    "dev": "concurrently -n server,web,bot -c cyan,green,magenta \"pnpm --filter @altf4/server dev\" \"pnpm --filter @altf4/web dev\" \"pnpm --filter @altf4/bot dev\"",
+    "dev:core": "concurrently -n server,web -c cyan,green \"pnpm --filter @altf4/server dev\" \"pnpm --filter @altf4/web dev\"",
+    "build": "pnpm --filter @altf4/shared typecheck && pnpm --filter @altf4/server build && pnpm --filter @altf4/web build && pnpm --filter @altf4/bot build",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @altf4/server test"
+  },
+  "engines": {
+    "node": ">=22.12.0",
+    "pnpm": ">=9"
+  },
+  "packageManager": "pnpm@11.7.0",
+  "devDependencies": {
+    "concurrently": "^9.2.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}
