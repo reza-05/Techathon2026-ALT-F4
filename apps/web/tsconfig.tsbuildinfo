@@ -1,1 +1,0 @@
-{"root":["./src/app.tsx","./src/main.tsx","./src/use-office-socket.ts","./src/components/activityfeed.tsx","./src/components/alertpanel.tsx","./src/components/kpicard.tsx","./src/components/officemap.tsx","./src/components/powersparkline.tsx","./vite.config.ts"],"version":"5.9.3"}
