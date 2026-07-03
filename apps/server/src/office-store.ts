@@ -15,95 +15,23 @@ import {
 
 const BDT_PER_KWH = 10.5;
 const START_TIME = "2026-07-04T09:10:00+06:00";
+const OFFICE_START_HOUR = 9;
+const OFFICE_END_HOUR = 17;
+const NORMAL_STEP_MINUTES = 20;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 const MAX_ACTIVITY = 8;
 const MAX_POWER_POINTS = 20;
-const NORMAL_FRAMES: Array<{
-  time: string;
-  activeDeviceIds: string[];
-}> = [
-  {
-    time: "2026-07-04T09:10:00+06:00",
-    activeDeviceIds: [
-      "drawing-light-1",
-      "work-1-fan-1",
-      "work-1-light-1",
-      "work-1-light-2",
-      "work-2-fan-1",
-      "work-2-light-1"
-    ]
-  },
-  {
-    time: "2026-07-04T10:30:00+06:00",
-    activeDeviceIds: [
-      "drawing-light-1",
-      "drawing-light-2",
-      "work-1-fan-1",
-      "work-1-fan-2",
-      "work-1-light-1",
-      "work-1-light-2",
-      "work-2-fan-1",
-      "work-2-light-1",
-      "work-2-light-2"
-    ]
-  },
-  {
-    time: "2026-07-04T12:20:00+06:00",
-    activeDeviceIds: [
-      "drawing-light-1",
-      "work-1-fan-1",
-      "work-1-fan-2",
-      "work-1-light-1",
-      "work-1-light-2",
-      "work-1-light-3",
-      "work-2-fan-1",
-      "work-2-fan-2",
-      "work-2-light-1",
-      "work-2-light-2"
-    ]
-  },
-  {
-    time: "2026-07-04T13:45:00+06:00",
-    activeDeviceIds: [
-      "drawing-light-2",
-      "work-1-fan-1",
-      "work-1-light-2",
-      "work-1-light-3",
-      "work-2-fan-1",
-      "work-2-fan-2",
-      "work-2-light-1"
-    ]
-  },
-  {
-    time: "2026-07-04T15:25:00+06:00",
-    activeDeviceIds: [
-      "drawing-light-1",
-      "work-1-fan-1",
-      "work-1-fan-2",
-      "work-1-light-1",
-      "work-1-light-2",
-      "work-2-fan-1",
-      "work-2-light-1",
-      "work-2-light-2"
-    ]
-  },
-  {
-    time: "2026-07-04T16:40:00+06:00",
-    activeDeviceIds: [
-      "drawing-light-1",
-      "work-1-fan-1",
-      "work-1-light-1",
-      "work-2-fan-1",
-      "work-2-light-1"
-    ]
-  }
-];
+const ROOM_USAGE_WEIGHT: Record<RoomId, number> = {
+  drawing: 0.62,
+  "work-1": 1,
+  "work-2": 0.9
+};
 
 type StoreListener = (snapshot: OfficeSnapshot) => void;
 
 export class OfficeStore {
   private simulatedNow = new Date(START_TIME);
-  private devices: Device[] = createInitialDevices(this.simulatedNow.toISOString());
+  private devices: Device[] = [];
   private scenario: ScenarioId = "normal";
   private sequence = 1;
   private todayEnergyKwh = 0;
@@ -111,10 +39,10 @@ export class OfficeStore {
   private recentActivity: ActivityEvent[] = [];
   private powerHistory: PowerPoint[] = [];
   private listeners = new Set<StoreListener>();
-  private autoStepIndex = 0;
   private activitySequence = 1;
 
   constructor() {
+    this.runNormalSimulation(true);
     this.addActivity("system", "Live office simulator started.");
     this.recordPowerPoint();
     this.evaluateAlerts();
@@ -173,16 +101,17 @@ export class OfficeStore {
 
     switch (scenario) {
       case "normal":
-        this.autoStepIndex = 0;
-        this.loadNormalFrame(0, true);
+        this.runNormalSimulation(true);
         break;
       case "after-hours":
         this.simulatedNow = new Date("2026-07-04T20:30:00+06:00");
+        this.todayEnergyKwh = 0;
         this.turnAllOff();
         this.setRoomPattern("work-2", ["fan", "fan", "light", "light", "light"]);
         break;
       case "long-running": {
         this.simulatedNow = new Date("2026-07-04T14:45:00+06:00");
+        this.todayEnergyKwh = 0;
         this.turnAllOff();
         const startedAt = new Date(this.simulatedNow.getTime() - TWO_HOURS_MS - 30 * 60 * 1000);
         this.devices
@@ -192,6 +121,7 @@ export class OfficeStore {
       }
       case "all-off":
         this.simulatedNow = new Date("2026-07-04T18:10:00+06:00");
+        this.todayEnergyKwh = 0;
         this.turnAllOff();
         break;
     }
@@ -206,8 +136,7 @@ export class OfficeStore {
       return this.commit();
     }
 
-    this.autoStepIndex = (this.autoStepIndex + 1) % NORMAL_FRAMES.length;
-    this.loadNormalFrame(this.autoStepIndex);
+    this.runNormalSimulation();
     return this.commit();
   }
 
@@ -237,42 +166,115 @@ export class OfficeStore {
     this.devices.forEach((device) => this.setDeviceState(device, false));
   }
 
-  private loadNormalFrame(frameIndex: number, reset = false): void {
-    const frame = NORMAL_FRAMES[frameIndex] ?? NORMAL_FRAMES[0];
-    if (!frame) {
-      return;
-    }
-    const nextTime = new Date(frame.time);
-    const activeDeviceIds = new Set(frame.activeDeviceIds);
-
+  private runNormalSimulation(reset = false): void {
     if (reset) {
-      this.simulatedNow = nextTime;
+      this.simulatedNow = new Date(START_TIME);
       this.todayEnergyKwh = 0;
       this.devices = createInitialDevices(this.simulatedNow.toISOString());
-      this.devices.forEach((device) => this.setDeviceState(device, activeDeviceIds.has(device.id), nextTime));
+    } else {
+      this.advanceNormalClock();
+    }
+
+    const nextStates = new Map<string, boolean>();
+    this.devices.forEach((device) => {
+      nextStates.set(device.id, this.shouldDeviceBeOn(device, this.simulatedNow));
+    });
+
+    let changedCount = 0;
+    this.devices.forEach((device) => {
+      const nextState = nextStates.get(device.id) ?? false;
+      if (device.isOn !== nextState) {
+        changedCount += 1;
+      }
+      this.setDeviceState(device, nextState, this.simulatedNow);
+    });
+
+    if (!reset && changedCount > 0) {
+      const activeDevices = Array.from(nextStates.values()).filter(Boolean).length;
+      this.addActivity(
+        "device",
+        `Normal office activity updated: ${activeDevices} devices active across ${this.countActiveRooms()} rooms.`
+      );
+    }
+  }
+
+  private advanceNormalClock(): void {
+    const officeClose = new Date(this.simulatedNow);
+    officeClose.setHours(OFFICE_END_HOUR, 0, 0, 0);
+    const candidate = new Date(this.simulatedNow.getTime() + NORMAL_STEP_MINUTES * 60 * 1000);
+
+    if (candidate.getTime() < officeClose.getTime()) {
+      this.advanceTime(NORMAL_STEP_MINUTES);
       return;
     }
 
-    const elapsedMinutes = Math.max(
+    const minutesUntilClose = Math.max(
       1,
-      Math.round((nextTime.getTime() - this.simulatedNow.getTime()) / 60_000)
+      Math.round((officeClose.getTime() - this.simulatedNow.getTime()) / 60_000)
     );
-    this.advanceTime(elapsedMinutes);
+    this.advanceTime(minutesUntilClose);
 
-    const changedDevices: string[] = [];
-    this.devices.forEach((device) => {
-      const nextState = activeDeviceIds.has(device.id);
-      if (device.isOn !== nextState) {
-        this.setDeviceState(device, nextState, this.simulatedNow);
-        changedDevices.push(
-          `${getRoomDefinition(device.roomId).name} ${device.name} ${nextState ? "ON" : "OFF"}`
-        );
-      }
-    });
+    const nextStart = new Date(this.simulatedNow);
+    nextStart.setDate(nextStart.getDate() + 1);
+    nextStart.setHours(OFFICE_START_HOUR, 5, 0, 0);
+    this.simulatedNow = nextStart;
+  }
 
-    if (changedDevices.length > 0) {
-      this.addActivity("device", `Normal schedule updated: ${changedDevices.join(", ")}.`);
+  private shouldDeviceBeOn(device: Device, at: Date): boolean {
+    const hour = Number(
+      new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        hourCycle: "h23",
+        timeZone: "Asia/Dhaka"
+      }).format(at)
+    );
+    const minute = Number(
+      new Intl.DateTimeFormat("en-GB", {
+        minute: "2-digit",
+        timeZone: "Asia/Dhaka"
+      }).format(at)
+    );
+    const hourFloat = hour + minute / 60;
+    const roomWeight = ROOM_USAGE_WEIGHT[device.roomId];
+    const workdayIntensity =
+      hourFloat < 10
+        ? 0.58
+        : hourFloat < 12
+          ? 0.78
+          : hourFloat < 14.5
+            ? 0.9
+            : hourFloat < 16
+              ? 0.72
+              : 0.46;
+    const daylightNeed =
+      hourFloat < 10.5 || hourFloat > 15.5
+        ? 0.18
+        : hourFloat > 12 && hourFloat < 14
+          ? -0.06
+          : 0.04;
+    const heatBoost = hourFloat >= 11 && hourFloat <= 15.5 ? 0.2 : 0.05;
+    const typeBias = device.type === "fan" ? 0.08 + heatBoost : daylightNeed;
+    const deterministicNoise = this.getDeterministicNoise(device.id, at);
+    const threshold = device.type === "fan" ? 0.62 : 0.56;
+    const score = workdayIntensity * roomWeight + typeBias + deterministicNoise;
+
+    return score >= threshold;
+  }
+
+  private countActiveRooms(): number {
+    return new Set(
+      this.devices.filter((device) => device.isOn).map((device) => device.roomId)
+    ).size;
+  }
+
+  private getDeterministicNoise(deviceId: string, at: Date): number {
+    const slot = Math.floor(at.getTime() / (NORMAL_STEP_MINUTES * 60 * 1000));
+    let hash = slot;
+    for (const character of deviceId) {
+      hash = (hash * 33 + character.charCodeAt(0)) % 9973;
     }
+
+    return (hash / 9973) * 0.18 - 0.09;
   }
 
   private setDeviceState(device: Device, isOn: boolean, changedAt = this.simulatedNow): void {
@@ -303,7 +305,7 @@ export class OfficeStore {
         timeZone: "Asia/Dhaka"
       }).format(this.simulatedNow)
     );
-    const isAfterHours = hour >= 17 || hour < 9;
+    const isAfterHours = hour >= OFFICE_END_HOUR || hour < OFFICE_START_HOUR;
 
     for (const roomId of ROOM_IDS) {
       const room = getRoomDefinition(roomId);

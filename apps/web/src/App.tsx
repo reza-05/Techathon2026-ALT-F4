@@ -108,11 +108,11 @@ export function App() {
         <section className="hero-row">
           <article className="hero-card">
             <div className="hero-card__copy">
-              <span className="eyebrow"><Leaf size={13} />SMART OFFICE CONTROL</span>
-              <h1>Turn office energy into something your team can actually see.</h1>
+              <span className="eyebrow"><Leaf size={13} />LIVE OFFICE ENERGY TWIN</span>
+              <h1>A live control view for smarter office energy decisions.</h1>
               <p>
-                PowerDown gives ALT+F4 one shared live view of every light, fan, load spike and
-                after-hours leak across the office floor.
+                Track every light, fan, power spike, and after-hours anomaly across all three rooms
+                from one focused dashboard.
               </p>
             </div>
 
@@ -133,13 +133,19 @@ export function App() {
                 <small>{snapshot.activeAlerts.length ? "Needs attention" : "Everything stable"}</small>
               </div>
             </div>
+
+            <div className="hero-card__notes">
+              <span>15 devices monitored in real time</span>
+              <span>After-hours and 2-hour anomaly detection</span>
+              <span>Shared live state across dashboard and Discord bot</span>
+            </div>
           </article>
 
           <div className="command-deck">
             <div className="command-deck__meta">
               <span>Simulation control</span>
               <strong>{activeScenario?.label ?? "Normal day"}</strong>
-              <small>{dateLabel} · {timeLabel} · Dhaka time</small>
+              <small>{dateLabel} · {timeLabel} · Asia/Dhaka simulated clock</small>
             </div>
 
             <div className="status-strip">

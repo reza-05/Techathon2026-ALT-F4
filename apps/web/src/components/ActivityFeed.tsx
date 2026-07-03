@@ -30,6 +30,7 @@ export function ActivityFeed({ events }: { events: ActivityEvent[] }) {
             <div className="activity-item" key={event.id}>
               <span><Icon size={15} /></span>
               <div>
+                <small className="activity-item__kind">{event.kind}</small>
                 <p>{event.message}</p>
                 <time>
                   {new Date(event.timestamp).toLocaleTimeString("en-BD", {
@@ -46,4 +47,3 @@ export function ActivityFeed({ events }: { events: ActivityEvent[] }) {
     </section>
   );
 }
-

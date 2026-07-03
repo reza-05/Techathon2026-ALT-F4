@@ -1,5 +1,5 @@
 import { CheckCircle2, ShieldAlert, TriangleAlert } from "lucide-react";
-import type { OfficeAlert } from "@altf4/shared";
+import { getRoomDefinition, type OfficeAlert } from "@altf4/shared";
 
 function formatTime(timestamp: string) {
   return new Date(timestamp).toLocaleTimeString("en-BD", {
@@ -35,7 +35,10 @@ export function AlertPanel({ alerts }: { alerts: OfficeAlert[] }) {
               </span>
               <div>
                 <div className="alert-item__top">
-                  <strong>{alert.title}</strong>
+                  <div>
+                    <strong>{alert.title}</strong>
+                    <small>{getRoomDefinition(alert.roomId).name}</small>
+                  </div>
                   <time>{formatTime(alert.triggeredAt)}</time>
                 </div>
                 <p>{alert.message}</p>
@@ -47,4 +50,3 @@ export function AlertPanel({ alerts }: { alerts: OfficeAlert[] }) {
     </section>
   );
 }
-

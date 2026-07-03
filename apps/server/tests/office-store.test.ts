@@ -80,4 +80,25 @@ describe("OfficeStore", () => {
       );
     }
   });
+
+  it("advances normal simulation time forward even after the last frame", () => {
+    const store = new OfficeStore();
+    let previousTime = new Date(store.getSnapshot().simulatedNow).getTime();
+
+    for (let index = 0; index < 10; index += 1) {
+      const snapshot = store.runAutomaticStep();
+      const currentTime = new Date(snapshot.simulatedNow).getTime();
+
+      expect(currentTime).toBeGreaterThan(previousTime);
+      previousTime = currentTime;
+    }
+  });
+
+  it("resets scenario energy totals when changing demo modes", () => {
+    const store = new OfficeStore();
+    store.runAutomaticStep();
+    const snapshot = store.applyScenario("after-hours");
+
+    expect(snapshot.todayEnergyKwh).toBe(0);
+  });
 });

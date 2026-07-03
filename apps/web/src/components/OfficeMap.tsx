@@ -35,28 +35,39 @@ export function OfficeMap({ devices, rooms, onToggle, busyDeviceId }: OfficeMapP
         {ROOMS.map((room) => {
           const roomDevices = devices.filter((device) => device.roomId === room.id);
           const summary = rooms.find((candidate) => candidate.id === room.id);
+          const hasActiveDevices = (summary?.activeDevices ?? 0) > 0;
 
           return (
-            <section className={`room room--${room.id}`} key={room.id}>
+            <section className={`room room--${room.id} ${hasActiveDevices ? "room--active" : ""}`} key={room.id}>
               <div className="room__header">
                 <div>
+                  <span className="room__tag">{room.id === "drawing" ? "Guest zone" : "Work zone"}</span>
                   <h3>{room.name}</h3>
                   <p>{room.purpose}</p>
                 </div>
-                <span className="room__watts">{summary?.currentWatts ?? 0}W</span>
+                <div className="room__metrics">
+                  <span className="room__watts">{summary?.currentWatts ?? 0}W</span>
+                  <span className="room__live">{summary?.activeDevices ?? 0}/5 live</span>
+                </div>
               </div>
 
-              <div className="room__lights">
-                {roomDevices
-                  .filter((device) => device.type === "light")
-                  .map((device) => (
-                    <DeviceButton
-                      key={device.id}
-                      device={device}
-                      onToggle={onToggle}
-                      busy={busyDeviceId === device.id}
-                    />
-                  ))}
+              <div className="room__cluster">
+                <div className="room__cluster-label">
+                  <span>Lighting</span>
+                  <small>{summary?.activeLights ?? 0}/3 active</small>
+                </div>
+                <div className="room__lights">
+                  {roomDevices
+                    .filter((device) => device.type === "light")
+                    .map((device) => (
+                      <DeviceButton
+                        key={device.id}
+                        device={device}
+                        onToggle={onToggle}
+                        busy={busyDeviceId === device.id}
+                      />
+                    ))}
+                </div>
               </div>
 
               <div className="room__furniture" aria-hidden="true">
@@ -73,32 +84,44 @@ export function OfficeMap({ devices, rooms, onToggle, busyDeviceId }: OfficeMapP
                 )}
               </div>
 
-              <div className="room__fans">
-                {roomDevices
-                  .filter((device) => device.type === "fan")
-                  .map((device) => (
-                    <DeviceButton
-                      key={device.id}
-                      device={device}
-                      onToggle={onToggle}
-                      busy={busyDeviceId === device.id}
-                    />
-                  ))}
+              <div className="room__cluster">
+                <div className="room__cluster-label">
+                  <span>Airflow</span>
+                  <small>{summary?.activeFans ?? 0}/2 active</small>
+                </div>
+                <div className="room__fans">
+                  {roomDevices
+                    .filter((device) => device.type === "fan")
+                    .map((device) => (
+                      <DeviceButton
+                        key={device.id}
+                        device={device}
+                        onToggle={onToggle}
+                        busy={busyDeviceId === device.id}
+                      />
+                    ))}
+                </div>
               </div>
 
               <div className="room__footer">
-                <span>{summary?.activeDevices ?? 0}/5 active</span>
-                <span>{summary?.activeFans ?? 0} fans · {summary?.activeLights ?? 0} lights</span>
+                <span>{summary?.activeDevices ?? 0}/5 devices online</span>
+                <span>Last physical sync: {relativeTime(
+                  roomDevices
+                    .slice()
+                    .sort((left, right) =>
+                      new Date(right.lastChangedAt).getTime() - new Date(left.lastChangedAt).getTime()
+                    )[0]?.lastChangedAt ?? new Date().toISOString()
+                )}</span>
               </div>
             </section>
           );
         })}
         <div className="office-corridor">
-          <span>ENTRY</span>
+          <span>ENTRY CORRIDOR</span>
           <i />
         </div>
       </div>
-      <p className="map-hint">Select any light or fan to simulate a physical state change.</p>
+      <p className="map-hint">Click any light or fan to simulate a physical switch event and watch the live model update.</p>
     </div>
   );
 }
@@ -121,9 +144,10 @@ function DeviceButton({ device, onToggle, busy }: DeviceButtonProps) {
       aria-label={`Turn ${device.name} ${device.isOn ? "off" : "on"}`}
     >
       <span className="map-device__halo" />
+      <span className="map-device__status">{device.isOn ? "ON" : "OFF"}</span>
       <Icon size={device.type === "fan" ? 29 : 25} strokeWidth={1.8} />
       <small>{device.name}</small>
+      <em>{device.currentWatts}W</em>
     </button>
   );
 }
-
