@@ -197,7 +197,13 @@ export class OfficeStore {
 
   private evaluateAlerts(): void {
     const nextAlerts: OfficeAlert[] = [];
-    const hour = this.simulatedNow.getHours();
+    const hour = Number(
+      new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        hourCycle: "h23",
+        timeZone: "Asia/Dhaka"
+      }).format(this.simulatedNow)
+    );
     const isAfterHours = hour >= 17 || hour < 9;
 
     for (const roomId of ROOM_IDS) {
@@ -237,10 +243,15 @@ export class OfficeStore {
       }
     }
 
-    const previousIds = new Set(this.activeAlerts.map((alert) => alert.id));
-    const nextIds = new Set(nextAlerts.map((alert) => alert.id));
+    const previousAlerts = new Map(this.activeAlerts.map((alert) => [alert.id, alert]));
+    const stableAlerts = nextAlerts.map((alert) => ({
+      ...alert,
+      triggeredAt: previousAlerts.get(alert.id)?.triggeredAt ?? alert.triggeredAt
+    }));
+    const previousIds = new Set(previousAlerts.keys());
+    const nextIds = new Set(stableAlerts.map((alert) => alert.id));
 
-    nextAlerts
+    stableAlerts
       .filter((alert) => !previousIds.has(alert.id))
       .forEach((alert) => this.addActivity("alert", `${alert.title}: ${alert.message}`));
 
@@ -248,7 +259,7 @@ export class OfficeStore {
       .filter((alert) => !nextIds.has(alert.id))
       .forEach((alert) => this.addActivity("alert", `Resolved: ${alert.title} in ${getRoomDefinition(alert.roomId).name}.`));
 
-    this.activeAlerts = nextAlerts;
+    this.activeAlerts = stableAlerts;
   }
 
   private addActivity(kind: ActivityEvent["kind"], message: string): void {
@@ -278,4 +289,3 @@ export class OfficeStore {
     return snapshot;
   }
 }
-

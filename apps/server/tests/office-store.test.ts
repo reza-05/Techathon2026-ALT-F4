@@ -21,7 +21,8 @@ describe("OfficeStore", () => {
   });
 
   it("detects an after-hours alert using the shared live state", () => {
-    const snapshot = new OfficeStore().applyScenario("after-hours");
+    const store = new OfficeStore();
+    const snapshot = store.applyScenario("after-hours");
 
     expect(snapshot.activeAlerts).toEqual(
       expect.arrayContaining([
@@ -31,6 +32,10 @@ describe("OfficeStore", () => {
         })
       ])
     );
+
+    const triggeredAt = snapshot.activeAlerts[0]?.triggeredAt;
+    const laterSnapshot = store.runAutomaticStep();
+    expect(laterSnapshot.activeAlerts[0]?.triggeredAt).toBe(triggeredAt);
   });
 
   it("detects a room running continuously for more than two hours", () => {
@@ -46,4 +51,3 @@ describe("OfficeStore", () => {
     );
   });
 });
-
