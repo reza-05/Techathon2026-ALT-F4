@@ -45,10 +45,12 @@ consistent maximum office load is:
 - 15 devices organized across exactly three rooms
 - Real-time Socket.IO synchronization
 - Live watts, integrated kWh, estimated cost and room breakdowns
-- Deterministic Normal, After-hours, 2-hour Anomaly and Close Office scenarios
+- Deterministic but believable office-hour simulation frames
+- Dedicated After-hours, 2-hour Anomaly and Close Office scenarios
 - Timestamped, deduplicated alert lifecycle
-- Discord `/status`, `/room` and `/usage` commands
+- Discord `!status`, `!room`, `!usage` plus slash-command support
 - Proactive Discord channel alerts
+- Optional OpenAI-powered natural-language bot replies
 - ESP32 + five isolated relay channel Wokwi design
 - Responsive UI and reduced-motion accessibility support
 
@@ -117,6 +119,8 @@ pnpm dev:core
 | `DISCORD_GUILD_ID` | No | Registers commands instantly in the demo server |
 | `DISCORD_ALERT_CHANNEL_ID` | No | Enables proactive alert messages |
 | `SERVER_API_URL` | No | Backend URL used by the bot |
+| `OPENAI_API_KEY` | No | Enables natural-language Discord replies via the Responses API |
+| `OPENAI_MODEL` | No | OpenAI model for bot replies, defaults to `gpt-5.5` |
 
 Never commit the real `.env` file or Discord token.
 
@@ -143,16 +147,20 @@ state transition. The `sequence` field lets consumers identify new snapshots.
 3. Add `DISCORD_GUILD_ID` for immediate command registration during the demo.
 4. Invite the bot with `bot` and `applications.commands` scopes.
 5. Add `DISCORD_ALERT_CHANNEL_ID` to enable proactive warnings.
-6. Run `pnpm dev`.
+6. Enable the Message Content intent in the Discord Developer Portal if you want `!status`, `!room`, and `!usage`.
+7. Add `OPENAI_API_KEY` if you want AI-generated replies instead of the built-in fallback formatter.
+8. Run `pnpm dev`.
 
-The bot requests only the `Guilds` gateway intent. Commands read actual backend
-data; no wattage or device status is hardcoded into a response.
+The bot reads actual backend data for both slash commands and prefix commands;
+no wattage or device status is hardcoded into a response. If `OPENAI_API_KEY`
+is present, the wording is generated through the OpenAI Responses API while the
+numbers still come from the backend snapshot.
 
 ## Simulation scenarios
 
 | Scenario | Demonstrates |
 |---|---|
-| Normal day | Dynamic room activity and live power changes |
+| Normal day | Dynamic room activity and live power changes during office hours |
 | After-hours leak | Work Room 2 left running at 8:30 PM |
 | 2-hour anomaly | Every Work Room 1 device continuously ON for 2h 30m |
 | Close office | All devices OFF and active alerts resolved |

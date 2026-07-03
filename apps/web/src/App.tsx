@@ -5,12 +5,12 @@ import {
   Bot,
   Building2,
   CalendarClock,
-  CircleDollarSign,
   Clock3,
   Gauge,
   Leaf,
   Radio,
   RotateCcw,
+  ShieldAlert,
   Sparkles,
   Zap
 } from "lucide-react";
@@ -79,6 +79,8 @@ export function App() {
     month: "short",
     timeZone: "Asia/Dhaka"
   });
+  const activeScenario = SCENARIOS.find((scenario) => scenario.id === snapshot.scenario);
+  const alertTone = snapshot.activeAlerts.length ? "amber" : "mint";
 
   return (
     <div className="app-shell">
@@ -104,29 +106,72 @@ export function App() {
 
       <main className="dashboard">
         <section className="hero-row">
-          <div>
-            <span className="eyebrow"><Leaf size={13} />SMART OFFICE CONTROL</span>
-            <h1>Every watt, visible.</h1>
-            <p>One live view of every light, fan and energy anomaly across the office.</p>
-          </div>
-          <div className="demo-lab">
-            <span>Simulation lab</span>
-            <div className="scenario-buttons">
-              {SCENARIOS.map((scenario) => {
-                const Icon = scenario.icon;
-                return (
-                  <button
-                    key={scenario.id}
-                    type="button"
-                    className={snapshot.scenario === scenario.id ? "is-active" : ""}
-                    onClick={() => activateScenario(scenario.id)}
-                    disabled={scenarioBusy}
-                  >
-                    <Icon size={14} />
-                    {scenario.label}
-                  </button>
-                );
-              })}
+          <article className="hero-card">
+            <div className="hero-card__copy">
+              <span className="eyebrow"><Leaf size={13} />SMART OFFICE CONTROL</span>
+              <h1>Turn office energy into something your team can actually see.</h1>
+              <p>
+                PowerDown gives ALT+F4 one shared live view of every light, fan, load spike and
+                after-hours leak across the office floor.
+              </p>
+            </div>
+
+            <div className="hero-card__stats">
+              <div>
+                <span>Live load</span>
+                <strong>{snapshot.totalWatts}W</strong>
+                <small>{snapshot.activeDeviceCount} active devices right now</small>
+              </div>
+              <div>
+                <span>Office coverage</span>
+                <strong>3 rooms</strong>
+                <small>Drawing, Work Room 1, Work Room 2</small>
+              </div>
+              <div>
+                <span>Alert watch</span>
+                <strong>{snapshot.activeAlerts.length}</strong>
+                <small>{snapshot.activeAlerts.length ? "Needs attention" : "Everything stable"}</small>
+              </div>
+            </div>
+          </article>
+
+          <div className="command-deck">
+            <div className="command-deck__meta">
+              <span>Simulation control</span>
+              <strong>{activeScenario?.label ?? "Normal day"}</strong>
+              <small>{dateLabel} · {timeLabel} · Dhaka time</small>
+            </div>
+
+            <div className="status-strip">
+              <span className={`status-chip status-chip--${connectionStatus}`}>
+                <Radio size={14} />
+                {connectionStatus === "live" ? "Realtime sync" : connectionStatus}
+              </span>
+              <span className={`status-chip status-chip--${alertTone}`}>
+                <ShieldAlert size={14} />
+                {snapshot.activeAlerts.length ? `${snapshot.activeAlerts.length} active alerts` : "No active alerts"}
+              </span>
+            </div>
+
+            <div className="demo-lab">
+              <span>Simulation lab</span>
+              <div className="scenario-buttons">
+                {SCENARIOS.map((scenario) => {
+                  const Icon = scenario.icon;
+                  return (
+                    <button
+                      key={scenario.id}
+                      type="button"
+                      className={snapshot.scenario === scenario.id ? "is-active" : ""}
+                      onClick={() => activateScenario(scenario.id)}
+                      disabled={scenarioBusy}
+                    >
+                      <Icon size={14} />
+                      {scenario.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </section>
@@ -153,10 +198,10 @@ export function App() {
             tone="violet"
           />
           <KpiCard
-            icon={CircleDollarSign}
-            label="Estimated cost"
-            value={`৳${snapshot.estimatedCostBdt.toFixed(2)}`}
-            meta="Based on ৳10.50 / kWh"
+            icon={ShieldAlert}
+            label="Alert status"
+            value={snapshot.activeAlerts.length ? `${snapshot.activeAlerts.length} live` : "All clear"}
+            meta={snapshot.activeAlerts.length ? "Review alert panel for room-level issues" : "No abnormal usage detected"}
             tone="amber"
           />
         </section>
@@ -221,4 +266,3 @@ export function App() {
     </div>
   );
 }
-

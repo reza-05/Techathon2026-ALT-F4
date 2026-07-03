@@ -50,4 +50,34 @@ describe("OfficeStore", () => {
       ])
     );
   });
+
+  it("keeps activity ids unique when several alerts trigger at once", () => {
+    const snapshot = new OfficeStore().applyScenario("after-hours");
+    const ids = snapshot.recentActivity.map((event) => event.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("keeps the normal simulator inside office hours", () => {
+    const store = new OfficeStore();
+
+    for (let index = 0; index < 8; index += 1) {
+      const snapshot = store.runAutomaticStep();
+      const hour = new Date(snapshot.simulatedNow).toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        hourCycle: "h23",
+        timeZone: "Asia/Dhaka"
+      });
+
+      expect(Number(hour)).toBeGreaterThanOrEqual(9);
+      expect(Number(hour)).toBeLessThan(17);
+      expect(snapshot.activeAlerts).toEqual(
+        expect.not.arrayContaining([
+          expect.objectContaining({
+            type: "after-hours"
+          })
+        ])
+      );
+    }
+  });
 });

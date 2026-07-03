@@ -14,10 +14,90 @@ import {
 } from "@altf4/shared";
 
 const BDT_PER_KWH = 10.5;
-const START_TIME = "2026-07-04T10:15:00+06:00";
+const START_TIME = "2026-07-04T09:10:00+06:00";
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 const MAX_ACTIVITY = 8;
 const MAX_POWER_POINTS = 20;
+const NORMAL_FRAMES: Array<{
+  time: string;
+  activeDeviceIds: string[];
+}> = [
+  {
+    time: "2026-07-04T09:10:00+06:00",
+    activeDeviceIds: [
+      "drawing-light-1",
+      "work-1-fan-1",
+      "work-1-light-1",
+      "work-1-light-2",
+      "work-2-fan-1",
+      "work-2-light-1"
+    ]
+  },
+  {
+    time: "2026-07-04T10:30:00+06:00",
+    activeDeviceIds: [
+      "drawing-light-1",
+      "drawing-light-2",
+      "work-1-fan-1",
+      "work-1-fan-2",
+      "work-1-light-1",
+      "work-1-light-2",
+      "work-2-fan-1",
+      "work-2-light-1",
+      "work-2-light-2"
+    ]
+  },
+  {
+    time: "2026-07-04T12:20:00+06:00",
+    activeDeviceIds: [
+      "drawing-light-1",
+      "work-1-fan-1",
+      "work-1-fan-2",
+      "work-1-light-1",
+      "work-1-light-2",
+      "work-1-light-3",
+      "work-2-fan-1",
+      "work-2-fan-2",
+      "work-2-light-1",
+      "work-2-light-2"
+    ]
+  },
+  {
+    time: "2026-07-04T13:45:00+06:00",
+    activeDeviceIds: [
+      "drawing-light-2",
+      "work-1-fan-1",
+      "work-1-light-2",
+      "work-1-light-3",
+      "work-2-fan-1",
+      "work-2-fan-2",
+      "work-2-light-1"
+    ]
+  },
+  {
+    time: "2026-07-04T15:25:00+06:00",
+    activeDeviceIds: [
+      "drawing-light-1",
+      "work-1-fan-1",
+      "work-1-fan-2",
+      "work-1-light-1",
+      "work-1-light-2",
+      "work-2-fan-1",
+      "work-2-light-1",
+      "work-2-light-2"
+    ]
+  },
+  {
+    time: "2026-07-04T16:40:00+06:00",
+    activeDeviceIds: [
+      "drawing-light-1",
+      "work-1-fan-1",
+      "work-1-light-1",
+      "work-2-fan-1",
+      "work-2-light-1"
+    ]
+  }
+];
 
 type StoreListener = (snapshot: OfficeSnapshot) => void;
 
@@ -26,12 +106,13 @@ export class OfficeStore {
   private devices: Device[] = createInitialDevices(this.simulatedNow.toISOString());
   private scenario: ScenarioId = "normal";
   private sequence = 1;
-  private todayEnergyKwh = 0.86;
+  private todayEnergyKwh = 0;
   private activeAlerts: OfficeAlert[] = [];
   private recentActivity: ActivityEvent[] = [];
   private powerHistory: PowerPoint[] = [];
   private listeners = new Set<StoreListener>();
   private autoStepIndex = 0;
+  private activitySequence = 1;
 
   constructor() {
     this.addActivity("system", "Live office simulator started.");
@@ -92,9 +173,8 @@ export class OfficeStore {
 
     switch (scenario) {
       case "normal":
-        this.simulatedNow = new Date(START_TIME);
-        this.todayEnergyKwh = 0.86;
-        this.devices = createInitialDevices(this.simulatedNow.toISOString());
+        this.autoStepIndex = 0;
+        this.loadNormalFrame(0, true);
         break;
       case "after-hours":
         this.simulatedNow = new Date("2026-07-04T20:30:00+06:00");
@@ -126,27 +206,8 @@ export class OfficeStore {
       return this.commit();
     }
 
-    const cycle = [
-      "drawing-light-2",
-      "work-1-fan-2",
-      "work-2-light-2",
-      "drawing-light-1",
-      "work-1-light-3",
-      "work-2-light-2"
-    ];
-    const targetId = cycle[this.autoStepIndex % cycle.length];
-    this.autoStepIndex += 1;
-    this.advanceTime(8);
-
-    const device = this.devices.find((candidate) => candidate.id === targetId);
-    if (device) {
-      this.setDeviceState(device, !device.isOn);
-      this.addActivity(
-        "device",
-        `${getRoomDefinition(device.roomId).name} ${device.name} turned ${device.isOn ? "ON" : "OFF"}.`
-      );
-    }
-
+    this.autoStepIndex = (this.autoStepIndex + 1) % NORMAL_FRAMES.length;
+    this.loadNormalFrame(this.autoStepIndex);
     return this.commit();
   }
 
@@ -174,6 +235,44 @@ export class OfficeStore {
 
   private turnAllOff(): void {
     this.devices.forEach((device) => this.setDeviceState(device, false));
+  }
+
+  private loadNormalFrame(frameIndex: number, reset = false): void {
+    const frame = NORMAL_FRAMES[frameIndex] ?? NORMAL_FRAMES[0];
+    if (!frame) {
+      return;
+    }
+    const nextTime = new Date(frame.time);
+    const activeDeviceIds = new Set(frame.activeDeviceIds);
+
+    if (reset) {
+      this.simulatedNow = nextTime;
+      this.todayEnergyKwh = 0;
+      this.devices = createInitialDevices(this.simulatedNow.toISOString());
+      this.devices.forEach((device) => this.setDeviceState(device, activeDeviceIds.has(device.id), nextTime));
+      return;
+    }
+
+    const elapsedMinutes = Math.max(
+      1,
+      Math.round((nextTime.getTime() - this.simulatedNow.getTime()) / 60_000)
+    );
+    this.advanceTime(elapsedMinutes);
+
+    const changedDevices: string[] = [];
+    this.devices.forEach((device) => {
+      const nextState = activeDeviceIds.has(device.id);
+      if (device.isOn !== nextState) {
+        this.setDeviceState(device, nextState, this.simulatedNow);
+        changedDevices.push(
+          `${getRoomDefinition(device.roomId).name} ${device.name} ${nextState ? "ON" : "OFF"}`
+        );
+      }
+    });
+
+    if (changedDevices.length > 0) {
+      this.addActivity("device", `Normal schedule updated: ${changedDevices.join(", ")}.`);
+    }
   }
 
   private setDeviceState(device: Device, isOn: boolean, changedAt = this.simulatedNow): void {
@@ -264,7 +363,7 @@ export class OfficeStore {
 
   private addActivity(kind: ActivityEvent["kind"], message: string): void {
     this.recentActivity.unshift({
-      id: `${this.sequence}-${this.recentActivity.length}-${kind}`,
+      id: `activity-${this.activitySequence++}`,
       kind,
       message,
       timestamp: this.simulatedNow.toISOString()
