@@ -1,0 +1,112 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-labelledby="title desc">
+  <title id="title">PowerDown high-level system architecture</title>
+  <desc id="desc">Data flows from simulated office devices through a single backend to the realtime dashboard and Discord bot.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#071713"/>
+      <stop offset="1" stop-color="#0b211a"/>
+    </linearGradient>
+    <linearGradient id="mint" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5df0a7"/>
+      <stop offset="1" stop-color="#25bd79"/>
+    </linearGradient>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="12" stdDeviation="18" flood-color="#000" flood-opacity=".28"/>
+    </filter>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="9" markerHeight="9" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#5df0a7"/>
+    </marker>
+    <style>
+      .title { font-family: Arial, sans-serif; font-size: 46px; font-weight: 800; fill: #f1fff8; letter-spacing: -1px; }
+      .subtitle { font-family: Arial, sans-serif; font-size: 20px; font-weight: 400; fill: #91aca1; }
+      .kicker { font-family: Arial, sans-serif; font-size: 15px; font-weight: 700; fill: #5df0a7; letter-spacing: 3px; }
+      .node-title { font-family: Arial, sans-serif; font-size: 24px; font-weight: 700; fill: #f1fff8; }
+      .node-copy { font-family: Arial, sans-serif; font-size: 16px; font-weight: 400; fill: #a5bdb4; }
+      .chip { font-family: Arial, sans-serif; font-size: 13px; font-weight: 700; fill: #c6ddd4; }
+      .flow { fill: none; stroke: #5df0a7; stroke-width: 4; marker-end: url(#arrow); }
+      .flow-muted { fill: none; stroke: #607c71; stroke-width: 3; stroke-dasharray: 8 9; marker-end: url(#arrow); }
+    </style>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="1450" cy="80" r="320" fill="#5df0a7" opacity=".035"/>
+  <circle cx="120" cy="850" r="330" fill="#9583ff" opacity=".04"/>
+
+  <text x="90" y="82" class="kicker">TEAM ALT+F4 · TECHATHON 2026</text>
+  <text x="90" y="142" class="title">PowerDown system architecture</text>
+  <text x="90" y="180" class="subtitle">One source of truth, two synchronized user interfaces, zero hardcoded answers.</text>
+
+  <g filter="url(#shadow)">
+    <rect x="90" y="290" width="300" height="300" rx="26" fill="#102b23" stroke="#29493e" stroke-width="2"/>
+    <rect x="112" y="312" width="112" height="30" rx="15" fill="#193a30"/>
+    <text x="132" y="333" class="chip">DEVICE LAYER</text>
+    <text x="122" y="390" class="node-title">Office simulator</text>
+    <text x="122" y="425" class="node-copy">15 lights and fans</text>
+    <text x="122" y="454" class="node-copy">Deterministic state changes</text>
+    <text x="122" y="483" class="node-copy">Virtual Dhaka clock</text>
+    <text x="122" y="512" class="node-copy">ESP32/Wokwi concept</text>
+    <rect x="122" y="540" width="98" height="28" rx="14" fill="#0a1d18" stroke="#315548"/>
+    <text x="142" y="559" class="chip">TELEMETRY</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="525" y="240" width="455" height="405" rx="28" fill="#113127" stroke="#5df0a7" stroke-opacity=".38" stroke-width="3"/>
+    <rect x="550" y="264" width="142" height="32" rx="16" fill="url(#mint)"/>
+    <text x="574" y="286" class="chip" fill="#042016">SINGLE BACKEND</text>
+    <text x="558" y="350" class="node-title">Node.js API + live state</text>
+    <text x="558" y="388" class="node-copy">Authoritative device repository</text>
+    <text x="558" y="418" class="node-copy">Power and kWh integration</text>
+    <text x="558" y="448" class="node-copy">After-hours + 2-hour alert engine</text>
+    <line x1="558" y1="480" x2="946" y2="480" stroke="#29493e"/>
+    <rect x="558" y="510" width="110" height="42" rx="12" fill="#0b211b" stroke="#34574a"/>
+    <text x="584" y="536" class="chip">REST API</text>
+    <rect x="684" y="510" width="126" height="42" rx="12" fill="#0b211b" stroke="#34574a"/>
+    <text x="704" y="536" class="chip">SOCKET.IO</text>
+    <rect x="826" y="510" width="120" height="42" rx="12" fill="#0b211b" stroke="#34574a"/>
+    <text x="847" y="536" class="chip">ALERT BUS</text>
+    <text x="558" y="600" class="node-copy">Every consumer reads the same versioned snapshot.</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1115" y="225" width="365" height="235" rx="26" fill="#102b23" stroke="#29493e" stroke-width="2"/>
+    <rect x="1138" y="248" width="112" height="30" rx="15" fill="#193a30"/>
+    <text x="1158" y="269" class="chip">WEB CLIENT</text>
+    <text x="1148" y="326" class="node-title">Live dashboard</text>
+    <text x="1148" y="362" class="node-copy">Animated office digital twin</text>
+    <text x="1148" y="391" class="node-copy">Live watts, kWh and room totals</text>
+    <text x="1148" y="420" class="node-copy">Scenario controls + active alerts</text>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="1115" y="505" width="365" height="235" rx="26" fill="#161f31" stroke="#4b486f" stroke-width="2"/>
+    <rect x="1138" y="528" width="126" height="30" rx="15" fill="#252846"/>
+    <text x="1158" y="549" class="chip">DISCORD APP</text>
+    <text x="1148" y="606" class="node-title">Office copilot</text>
+    <text x="1148" y="642" class="node-copy">/status · /room · /usage</text>
+    <text x="1148" y="671" class="node-copy">Friendly facts from REST API</text>
+    <text x="1148" y="700" class="node-copy">Proactive channel alerts</text>
+  </g>
+
+  <path d="M 390 440 C 455 440 470 440 525 440" class="flow"/>
+  <path d="M 525 440 L 505 429 L 505 451 Z" fill="#5df0a7"/>
+  <text x="418" y="418" class="chip">STATE EVENTS</text>
+  <path d="M 980 370 C 1042 370 1050 342 1115 342" class="flow"/>
+  <path d="M 1115 342 L 1095 331 L 1095 353 Z" fill="#5df0a7"/>
+  <text x="1004" y="322" class="chip">LIVE SNAPSHOT</text>
+  <path d="M 980 505 C 1040 505 1055 620 1115 620" class="flow"/>
+  <path d="M 1115 620 L 1095 609 L 1095 631 Z" fill="#5df0a7"/>
+  <text x="996" y="578" class="chip">REST + ALERTS</text>
+  <path d="M 1298 460 L 1298 505" class="flow-muted"/>
+  <text x="1320" y="489" class="chip">SAME REALITY</text>
+
+  <g transform="translate(90 780)">
+    <rect width="1390" height="72" rx="18" fill="#0b1f19" stroke="#29493e"/>
+    <circle cx="34" cy="36" r="8" fill="#5df0a7"/>
+    <text x="58" y="42" class="node-copy">Dashboard changes without refresh</text>
+    <circle cx="415" cy="36" r="8" fill="#5df0a7"/>
+    <text x="439" y="42" class="node-copy">Bot never invents power values</text>
+    <circle cx="790" cy="36" r="8" fill="#5df0a7"/>
+    <text x="814" y="42" class="node-copy">Alerts are timestamped and deduplicated</text>
+    <circle cx="1200" cy="36" r="8" fill="#5df0a7"/>
+    <text x="1224" y="42" class="node-copy">Asia/Dhaka time</text>
+  </g>
+</svg>
