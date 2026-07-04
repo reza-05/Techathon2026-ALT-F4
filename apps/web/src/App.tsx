@@ -1,19 +1,5 @@
 import { useState } from "react";
-import {
-  Activity,
-  BellRing,
-  Bot,
-  Building2,
-  CalendarClock,
-  Clock3,
-  Gauge,
-  Leaf,
-  Radio,
-  RotateCcw,
-  ShieldAlert,
-  Sparkles,
-  Zap
-} from "lucide-react";
+import { Activity, BellRing, Building2, Clock3, Gauge, RotateCcw, ShieldAlert, Sparkles, Zap } from "lucide-react";
 import type { ScenarioId } from "@altf4/shared";
 import { ActivityFeed } from "./components/ActivityFeed";
 import { AlertPanel } from "./components/AlertPanel";
@@ -80,13 +66,12 @@ export function App() {
     timeZone: "Asia/Dhaka"
   });
   const activeScenario = SCENARIOS.find((scenario) => scenario.id === snapshot.scenario);
-  const alertTone = snapshot.activeAlerts.length ? "amber" : "mint";
 
   return (
     <div className="app-shell">
       <header className="topbar">
         <a className="brand" href="#" aria-label="PowerDown dashboard home">
-          <span className="brand-mark"><Zap size={22} fill="currentColor" /></span>
+          <span className="brand-mark"><Zap size={14} fill="currentColor" /></span>
           <span>
             <strong>PowerDown</strong>
             <small>OFFICE ENERGY INTELLIGENCE</small>
@@ -94,100 +79,33 @@ export function App() {
         </a>
 
         <div className="topbar__center">
-          <span className="office-pill"><Building2 size={15} />ALT+F4 HQ</span>
-          <span className="time-pill"><CalendarClock size={15} />{dateLabel} · {timeLabel}</span>
+          <span className="status-pill">
+            <Building2 size={12} />
+            ALT+F4 HQ
+          </span>
+          <span className="status-pill">
+            <Clock3 size={12} />
+            {dateLabel} · {timeLabel}
+          </span>
         </div>
 
-        <div className={`live-status live-status--${connectionStatus}`}>
-          <Radio size={15} />
-          <span>{connectionStatus === "live" ? "Live sync" : connectionStatus}</span>
+        <div className="topbar__right">
+          <span className={`status-pill ${connectionStatus === "live" ? "status-pill--active" : "status-pill--danger"}`}>
+            <span className="status-indicator-dot status-indicator-dot--pulse" />
+            {connectionStatus === "live" ? "LIVE SYNC" : "OFFLINE"}
+          </span>
         </div>
       </header>
 
       <main className="dashboard">
-        <section className="hero-row">
-          <article className="hero-card">
-            <div className="hero-card__copy">
-              <span className="eyebrow"><Leaf size={13} />LIVE OFFICE ENERGY TWIN</span>
-              <h1>A live control view for smarter office energy decisions.</h1>
-              <p>
-                Track every light, fan, power spike, and after-hours anomaly across all three rooms
-                from one focused dashboard.
-              </p>
-            </div>
-
-            <div className="hero-card__stats">
-              <div>
-                <span>Live load</span>
-                <strong>{snapshot.totalWatts}W</strong>
-                <small>{snapshot.activeDeviceCount} active devices right now</small>
-              </div>
-              <div>
-                <span>Office coverage</span>
-                <strong>3 rooms</strong>
-                <small>Drawing, Work Room 1, Work Room 2</small>
-              </div>
-              <div>
-                <span>Alert watch</span>
-                <strong>{snapshot.activeAlerts.length}</strong>
-                <small>{snapshot.activeAlerts.length ? "Needs attention" : "Everything stable"}</small>
-              </div>
-            </div>
-
-            <div className="hero-card__notes">
-              <span>15 devices monitored in real time</span>
-              <span>After-hours and 2-hour anomaly detection</span>
-              <span>Shared live state across dashboard and Discord bot</span>
-            </div>
-          </article>
-
-          <div className="command-deck">
-            <div className="command-deck__meta">
-              <span>Simulation control</span>
-              <strong>{activeScenario?.label ?? "Normal day"}</strong>
-              <small>{dateLabel} · {timeLabel} · Asia/Dhaka simulated clock</small>
-            </div>
-
-            <div className="status-strip">
-              <span className={`status-chip status-chip--${connectionStatus}`}>
-                <Radio size={14} />
-                {connectionStatus === "live" ? "Realtime sync" : connectionStatus}
-              </span>
-              <span className={`status-chip status-chip--${alertTone}`}>
-                <ShieldAlert size={14} />
-                {snapshot.activeAlerts.length ? `${snapshot.activeAlerts.length} active alerts` : "No active alerts"}
-              </span>
-            </div>
-
-            <div className="demo-lab">
-              <span>Simulation lab</span>
-              <div className="scenario-buttons">
-                {SCENARIOS.map((scenario) => {
-                  const Icon = scenario.icon;
-                  return (
-                    <button
-                      key={scenario.id}
-                      type="button"
-                      className={snapshot.scenario === scenario.id ? "is-active" : ""}
-                      onClick={() => activateScenario(scenario.id)}
-                      disabled={scenarioBusy}
-                    >
-                      <Icon size={14} />
-                      {scenario.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          </div>
-        </section>
-
         <section className="kpi-grid">
           <KpiCard
             icon={Gauge}
             label="Live power"
             value={`${snapshot.totalWatts} W`}
-            meta={`${Math.round((snapshot.totalWatts / 495) * 100)}% of 495W capacity`}
+            meta={`${Math.round((snapshot.totalWatts / 495) * 100)}% load capacity`}
+            trend="+12% vs last hour"
+            sparkPath="M 0 10 L 8 4 L 16 12 L 24 6 L 32 8 L 40 2 L 48 8"
           />
           <KpiCard
             icon={Activity}
@@ -195,20 +113,26 @@ export function App() {
             value={`${snapshot.activeDeviceCount} / ${snapshot.totalDeviceCount}`}
             meta={`${snapshot.totalDeviceCount - snapshot.activeDeviceCount} currently off`}
             tone="blue"
+            trend={`${snapshot.activeDeviceCount} online`}
+            sparkPath="M 0 12 L 12 12 L 12 6 L 24 6 L 24 12 L 36 12 L 36 6 L 48 6"
           />
           <KpiCard
             icon={Zap}
             label="Energy today"
             value={`${snapshot.todayEnergyKwh.toFixed(2)} kWh`}
-            meta="Integrated from live power"
+            meta="Integrated live total"
             tone="violet"
+            trend="+0.14 kWh/h"
+            sparkPath="M 0 12 Q 16 10, 24 6 T 48 2"
           />
           <KpiCard
             icon={ShieldAlert}
             label="Alert status"
-            value={snapshot.activeAlerts.length ? `${snapshot.activeAlerts.length} live` : "All clear"}
-            meta={snapshot.activeAlerts.length ? "Review alert panel for room-level issues" : "No abnormal usage detected"}
+            value={snapshot.activeAlerts.length ? `${snapshot.activeAlerts.length} active` : "All clear"}
+            meta={snapshot.activeAlerts.length ? "Abnormal load detected" : "No device leaks"}
             tone="amber"
+            trend={snapshot.activeAlerts.length ? "⚠️ Warning" : "✅ Efficient"}
+            sparkPath={snapshot.activeAlerts.length ? "M 0 12 L 20 12 L 24 2 L 28 12 L 48 12" : "M 0 12 L 48 12"}
           />
         </section>
 
@@ -220,6 +144,35 @@ export function App() {
             busyDeviceId={busyDeviceId}
           />
           <aside className="sidebar-stack">
+            <div className="command-deck">
+              <div className="command-deck__meta">
+                <span>Scenario control</span>
+                <strong>{activeScenario?.label ?? "Normal day"}</strong>
+                <small>Simulated timeline controller</small>
+              </div>
+
+              <div className="demo-lab">
+                <span>Simulation lab</span>
+                <div className="scenario-buttons">
+                  {SCENARIOS.map((scenario) => {
+                    const Icon = scenario.icon;
+                    return (
+                      <button
+                        key={scenario.id}
+                        type="button"
+                        className={snapshot.scenario === scenario.id ? "is-active" : ""}
+                        onClick={() => activateScenario(scenario.id)}
+                        disabled={scenarioBusy}
+                      >
+                        <Icon size={12} />
+                        {scenario.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
             <AlertPanel alerts={snapshot.activeAlerts} />
             <ActivityFeed events={snapshot.recentActivity} />
           </aside>
@@ -254,12 +207,44 @@ export function App() {
             </div>
           </article>
 
-          <article className="insight-card bot-card">
-            <span className="bot-card__icon"><Bot size={26} /></span>
-            <div>
-              <span className="eyebrow">DISCORD COPILOT</span>
-              <h2>Ask without opening a browser.</h2>
-              <p>Use <code>/status</code>, <code>/room</code> or <code>/usage</code> for the same live data.</p>
+          <article className="insight-card discord-chat">
+            <div className="discord-header">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ marginRight: "2px" }}>
+                <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" />
+                <path d="M19 10v2a7 7 0 0 1-14 0v-2" />
+                <line x1="12" x2="12" y1="19" y2="22" />
+              </svg>
+              <span>#alerts-and-queries</span>
+            </div>
+            <div className="discord-messages">
+              <div className="discord-message">
+                <div className="discord-avatar">SR</div>
+                <div className="discord-message-content">
+                  <div className="discord-message-header">
+                    <span className="discord-user">Shifat Reza</span>
+                    <span className="discord-time">Today at 1:16 AM</span>
+                  </div>
+                  <div className="discord-text"><code>/status</code></div>
+                </div>
+              </div>
+              
+              <div className="discord-message">
+                <div className="discord-avatar discord-avatar--bot" style={{ backgroundColor: "var(--discord)" }}>PD</div>
+                <div className="discord-message-content">
+                  <div className="discord-message-header">
+                    <span className="discord-user" style={{ color: "var(--mint)" }}>PowerDown Bot</span>
+                    <span className="discord-bot-badge">Bot</span>
+                    <span className="discord-time">Today at 1:16 AM</span>
+                  </div>
+                  <div className="discord-text">
+                    ⚡ <strong>Live energy brief:</strong><br />
+                    The office is drawing <strong>{snapshot.totalWatts}W</strong> right now.<br />
+                    • Drawing Room: {snapshot.rooms.find(r => r.id === "drawing")?.currentWatts ?? 0}W<br />
+                    • Work Room 1: {snapshot.rooms.find(r => r.id === "work-1")?.currentWatts ?? 0}W<br />
+                    • Work Room 2: {snapshot.rooms.find(r => r.id === "work-2")?.currentWatts ?? 0}W
+                  </div>
+                </div>
+              </div>
             </div>
           </article>
         </section>

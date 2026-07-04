@@ -36,18 +36,23 @@ export function OfficeMap({ devices, rooms, onToggle, busyDeviceId }: OfficeMapP
           const roomDevices = devices.filter((device) => device.roomId === room.id);
           const summary = rooms.find((candidate) => candidate.id === room.id);
           const hasActiveDevices = (summary?.activeDevices ?? 0) > 0;
+          const hasLightsOn = roomDevices.some((device) => device.type === "light" && device.isOn);
 
           return (
-            <section className={`room room--${room.id} ${hasActiveDevices ? "room--active" : ""}`} key={room.id}>
+            <section
+              className={`room room--${room.id} ${hasActiveDevices ? "room--active" : ""} ${
+                hasLightsOn ? "room--has-lights-on" : ""
+              }`}
+              key={room.id}
+            >
+              <div className="room__light-glow" />
               <div className="room__header">
                 <div>
-                  <span className="room__tag">{room.id === "drawing" ? "Guest zone" : "Work zone"}</span>
                   <h3>{room.name}</h3>
                   <p>{room.purpose}</p>
                 </div>
                 <div className="room__metrics">
                   <span className="room__watts">{summary?.currentWatts ?? 0}W</span>
-                  <span className="room__live">{summary?.activeDevices ?? 0}/5 live</span>
                 </div>
               </div>
 
@@ -144,7 +149,6 @@ function DeviceButton({ device, onToggle, busy }: DeviceButtonProps) {
       aria-label={`Turn ${device.name} ${device.isOn ? "off" : "on"}`}
     >
       <span className="map-device__halo" />
-      <span className="map-device__status">{device.isOn ? "ON" : "OFF"}</span>
       <Icon size={device.type === "fan" ? 29 : 25} strokeWidth={1.8} />
       <small>{device.name}</small>
       <em>{device.currentWatts}W</em>

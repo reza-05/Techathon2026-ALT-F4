@@ -1,18 +1,4 @@
-import { BellRing, Cpu, ToggleRight, WandSparkles } from "lucide-react";
 import type { ActivityEvent } from "@altf4/shared";
-
-function iconFor(kind: ActivityEvent["kind"]) {
-  switch (kind) {
-    case "alert":
-      return BellRing;
-    case "device":
-      return ToggleRight;
-    case "scenario":
-      return WandSparkles;
-    case "system":
-      return Cpu;
-  }
-}
 
 export function ActivityFeed({ events }: { events: ActivityEvent[] }) {
   return (
@@ -25,12 +11,9 @@ export function ActivityFeed({ events }: { events: ActivityEvent[] }) {
       </div>
       <div className="activity-list">
         {events.slice(0, 5).map((event) => {
-          const Icon = iconFor(event.kind);
           return (
-            <div className="activity-item" key={event.id}>
-              <span><Icon size={15} /></span>
+            <div className={`activity-item activity-item--${event.kind}`} key={event.id}>
               <div>
-                <small className="activity-item__kind">{event.kind}</small>
                 <p>{event.message}</p>
                 <time>
                   {new Date(event.timestamp).toLocaleTimeString("en-BD", {

@@ -11,7 +11,7 @@ function formatTime(timestamp: string) {
 
 export function AlertPanel({ alerts }: { alerts: OfficeAlert[] }) {
   return (
-    <section className="side-card alert-panel">
+    <section className={`side-card alert-panel ${alerts.length ? "alert-panel--warning" : ""}`}>
       <div className="section-heading">
         <div>
           <span className="eyebrow">ATTENTION NEEDED</span>
@@ -31,7 +31,7 @@ export function AlertPanel({ alerts }: { alerts: OfficeAlert[] }) {
           alerts.map((alert) => (
             <article className={`alert-item alert-item--${alert.severity}`} key={alert.id}>
               <span className="alert-item__icon">
-                {alert.severity === "critical" ? <ShieldAlert size={20} /> : <TriangleAlert size={20} />}
+                {alert.severity === "critical" ? <ShieldAlert size={14} /> : <TriangleAlert size={14} />}
               </span>
               <div>
                 <div className="alert-item__top">
