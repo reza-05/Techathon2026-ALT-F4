@@ -1,52 +1,48 @@
-import { CheckCircle2, ShieldAlert, TriangleAlert } from "lucide-react";
+import { CheckCircle2, TriangleAlert } from "lucide-react";
 import { getRoomDefinition, type OfficeAlert } from "@altf4/shared";
 
 function formatTime(timestamp: string) {
   return new Date(timestamp).toLocaleTimeString("en-BD", {
-    hour: "2-digit",
+    hour: "numeric",
     minute: "2-digit",
+    hour12: true,
     timeZone: "Asia/Dhaka"
   });
 }
 
 export function AlertPanel({ alerts }: { alerts: OfficeAlert[] }) {
   return (
-    <section className={`side-card alert-panel ${alerts.length ? "alert-panel--warning" : ""}`}>
-      <div className="section-heading">
-        <div>
-          <span className="eyebrow">ATTENTION NEEDED</span>
-          <h2>Active alerts</h2>
-        </div>
-        <span className={`count-badge ${alerts.length ? "has-alerts" : ""}`}>{alerts.length}</span>
+    <aside className="alerts-sidebar">
+      <div className="alerts-sidebar__header">
+        <span className="section-kicker">Active Alerts</span>
+        <h2>Monitoring panel</h2>
       </div>
 
-      <div className="alert-list">
-        {alerts.length === 0 ? (
-          <div className="empty-state">
-            <CheckCircle2 size={32} />
-            <strong>Everything looks efficient</strong>
-            <p>No unusual energy usage detected.</p>
-          </div>
-        ) : (
-          alerts.map((alert) => (
-            <article className={`alert-item alert-item--${alert.severity}`} key={alert.id}>
-              <span className="alert-item__icon">
-                {alert.severity === "critical" ? <ShieldAlert size={14} /> : <TriangleAlert size={14} />}
+      {alerts.length === 0 ? (
+        <div className="alerts-empty">
+          <CheckCircle2 size={28} />
+          <strong>No active alerts</strong>
+          <p>All rooms are currently within expected usage.</p>
+        </div>
+      ) : (
+        <div className="alerts-list">
+          {alerts.map((alert) => (
+            <article key={alert.id} className="alert-row">
+              <span className="alert-row__icon">
+                <TriangleAlert size={18} />
               </span>
               <div>
-                <div className="alert-item__top">
-                  <div>
-                    <strong>{alert.title}</strong>
-                    <small>{getRoomDefinition(alert.roomId).name}</small>
-                  </div>
+                <div className="alert-row__top">
+                  <strong>{alert.title}</strong>
                   <time>{formatTime(alert.triggeredAt)}</time>
                 </div>
+                <small>{getRoomDefinition(alert.roomId).name}</small>
                 <p>{alert.message}</p>
               </div>
             </article>
-          ))
-        )}
-      </div>
-    </section>
+          ))}
+        </div>
+      )}
+    </aside>
   );
 }

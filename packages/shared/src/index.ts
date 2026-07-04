@@ -15,11 +15,15 @@ export interface RoomDefinition {
 export interface Device {
   id: string;
   roomId: RoomId;
+  room: RoomId;
   type: DeviceType;
   name: string;
+  status: "on" | "off";
   isOn: boolean;
   ratedWatts: number;
+  powerDraw: number;
   currentWatts: number;
+  lastChanged: string;
   lastChangedAt: string;
 }
 
@@ -61,6 +65,8 @@ export interface PowerPoint {
 export interface OfficeSnapshot {
   sequence: number;
   simulatedNow: string;
+  simulatedTime: string;
+  isAfterHours: boolean;
   scenario: ScenarioId;
   devices: Device[];
   rooms: RoomSummary[];
@@ -123,11 +129,15 @@ export function createInitialDevices(timestamp: string): Device[] {
       return {
         id,
         roomId: room.id,
+        room: room.id,
         type: blueprint.type,
         name: blueprint.name,
+        status: isOn ? "on" : "off",
         isOn,
         ratedWatts: blueprint.ratedWatts,
+        powerDraw: isOn ? blueprint.ratedWatts : 0,
         currentWatts: isOn ? blueprint.ratedWatts : 0,
+        lastChanged: timestamp,
         lastChangedAt: timestamp
       };
     })
@@ -141,4 +151,3 @@ export function getRoomDefinition(roomId: RoomId): RoomDefinition {
   }
   return room;
 }
-

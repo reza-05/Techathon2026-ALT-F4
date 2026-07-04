@@ -5,9 +5,7 @@ interface KpiCardProps {
   label: string;
   value: string;
   meta: string;
-  tone?: "mint" | "amber" | "violet" | "blue";
-  trend?: string;
-  sparkPath?: string;
+  tone?: "default" | "neutral" | "danger";
 }
 
 export function KpiCard({
@@ -15,38 +13,18 @@ export function KpiCard({
   label,
   value,
   meta,
-  tone = "mint",
-  trend,
-  sparkPath = "M 0 10 Q 12 2, 24 12 T 48 6"
+  tone = "default"
 }: KpiCardProps) {
   return (
     <article className={`kpi-card kpi-card--${tone}`}>
-      <div className="kpi-card__top">
-        <div className="kpi-card__top-left">
-          <span className="kpi-card__icon">
-            <Icon size={14} strokeWidth={2.2} />
-          </span>
-          <span className="kpi-card__label">{label}</span>
-        </div>
-        {trend && (
-          <span className="kpi-card__trend">
-            {trend}
-          </span>
-        )}
+      <div className="kpi-card__header">
+        <span className="kpi-card__icon">
+          <Icon size={16} />
+        </span>
+        <span className="kpi-card__label">{label}</span>
       </div>
       <strong>{value}</strong>
-      <div className="kpi-card__bottom">
-        <p>{meta}</p>
-        <svg width="48" height="14" viewBox="0 0 48 14" className="kpi-card__spark">
-          <path
-            d={sparkPath}
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.5"
-            strokeLinecap="round"
-          />
-        </svg>
-      </div>
+      <p>{meta}</p>
     </article>
   );
 }

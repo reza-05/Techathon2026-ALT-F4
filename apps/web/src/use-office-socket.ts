@@ -8,6 +8,7 @@ export function useOfficeSocket() {
   const [snapshot, setSnapshot] = useState<OfficeSnapshot | null>(null);
   const [connectionStatus, setConnectionStatus] =
     useState<ConnectionStatus>("connecting");
+  const [togglingIds, setTogglingIds] = useState<string[]>([]);
 
   useEffect(() => {
     let active = true;
@@ -47,6 +48,21 @@ export function useOfficeSocket() {
     };
   }, []);
 
-  return { snapshot, connectionStatus };
-}
+  async function toggleDevice(deviceId: string) {
+    setTogglingIds((current) => (current.includes(deviceId) ? current : [...current, deviceId]));
+    try {
+      const response = await fetch(`${API_URL}/api/devices/${deviceId}/toggle`, {
+        method: "POST"
+      });
+      if (!response.ok) {
+        throw new Error("Unable to toggle device");
+      }
+      const nextSnapshot = (await response.json()) as OfficeSnapshot;
+      setSnapshot(nextSnapshot);
+    } finally {
+      setTogglingIds((current) => current.filter((id) => id !== deviceId));
+    }
+  }
 
+  return { snapshot, connectionStatus, toggleDevice, togglingIds };
+}

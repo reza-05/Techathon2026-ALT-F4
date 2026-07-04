@@ -30,7 +30,7 @@ store.subscribe((snapshot) => {
 
 const simulationTimer = setInterval(() => {
   store.runAutomaticStep();
-}, 8_000);
+}, 1_000);
 
 httpServer.listen(port, () => {
   console.log(`PowerDown API listening on http://localhost:${port}`);

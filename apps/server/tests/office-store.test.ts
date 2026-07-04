@@ -8,6 +8,7 @@ describe("OfficeStore", () => {
     expect(snapshot.totalDeviceCount).toBe(15);
     expect(snapshot.rooms).toHaveLength(3);
     expect(snapshot.rooms.every((room) => room.totalDevices === 5)).toBe(true);
+    expect(snapshot.devices.every((device) => "status" in device && "powerDraw" in device && "room" in device && "lastChanged" in device)).toBe(true);
   });
 
   it("calculates watts from the actual active device states", () => {
@@ -100,5 +101,23 @@ describe("OfficeStore", () => {
     const snapshot = store.applyScenario("after-hours");
 
     expect(snapshot.todayEnergyKwh).toBe(0);
+  });
+
+  it("broadcasts simulated time labels and after-hours state", () => {
+    const store = new OfficeStore();
+    const daySnapshot = store.getSnapshot();
+    const nightSnapshot = store.applyScenario("after-hours");
+
+    expect(daySnapshot.simulatedTime).toContain(":");
+    expect(daySnapshot.isAfterHours).toBe(false);
+    expect(nightSnapshot.isAfterHours).toBe(true);
+  });
+
+  it("advances ten simulated minutes per automatic tick", () => {
+    const store = new OfficeStore();
+    const before = new Date(store.getSnapshot().simulatedNow).getTime();
+    const after = new Date(store.runAutomaticStep().simulatedNow).getTime();
+
+    expect((after - before) / 60000).toBe(10);
   });
 });

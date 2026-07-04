@@ -14,18 +14,14 @@ import {
 } from "@altf4/shared";
 
 const BDT_PER_KWH = 10.5;
-const START_TIME = "2026-07-04T09:10:00+06:00";
+const START_TIME = "2026-07-04T09:00:00+06:00";
 const OFFICE_START_HOUR = 9;
 const OFFICE_END_HOUR = 17;
-const NORMAL_STEP_MINUTES = 10;
+const AFTER_HOURS_END_HOUR = 21;
+const SIMULATED_MINUTES_PER_TICK = 10;
 const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
 const MAX_ACTIVITY = 8;
 const MAX_POWER_POINTS = 20;
-const ROOM_USAGE_WEIGHT: Record<RoomId, number> = {
-  drawing: 0.62,
-  "work-1": 1,
-  "work-2": 0.9
-};
 
 type StoreListener = (snapshot: OfficeSnapshot) => void;
 
@@ -40,12 +36,11 @@ export class OfficeStore {
   private powerHistory: PowerPoint[] = [];
   private listeners = new Set<StoreListener>();
   private activitySequence = 1;
-  private drawingRoomOccupied = true;
-  private drawingRoomOccupancyTimer = 60;
-  private hasProcessedClosing = false;
+  private afterHoursLeakInjected = false;
+  private manualOverrides = new Map<string, boolean>();
 
   constructor() {
-    this.runNormalSimulation(true);
+    this.resetNormalDay();
     this.addActivity("system", "Live office simulator started.");
     this.recordPowerPoint();
     this.evaluateAlerts();
@@ -63,10 +58,12 @@ export class OfficeStore {
     return {
       sequence: this.sequence,
       simulatedNow: this.simulatedNow.toISOString(),
+      simulatedTime: this.formatSimulatedTime(this.simulatedNow),
+      isAfterHours: this.isAfterHours(this.simulatedNow),
       scenario: this.scenario,
       devices: this.devices.map((device) => ({ ...device })),
       rooms,
-      activeDeviceCount: this.devices.filter((device) => device.isOn).length,
+      activeDeviceCount: this.devices.filter((device) => device.status === "on").length,
       totalDeviceCount: this.devices.length,
       totalWatts,
       todayEnergyKwh: Number(this.todayEnergyKwh.toFixed(3)),
@@ -91,30 +88,34 @@ export class OfficeStore {
     }
 
     this.advanceTime(1);
-    this.setDeviceState(device, !device.isOn);
+    const nextIsOn = device.status !== "on";
+    this.setDeviceState(device, nextIsOn);
+    this.manualOverrides.set(device.id, nextIsOn);
     this.addActivity(
       "device",
-      `${getRoomDefinition(device.roomId).name} ${device.name} turned ${device.isOn ? "ON" : "OFF"}.`
+      `${getRoomDefinition(device.roomId).name} ${device.name} turned ${device.status}.`
     );
     return this.commit();
   }
 
   applyScenario(scenario: ScenarioId): OfficeSnapshot {
     this.scenario = scenario;
+    this.todayEnergyKwh = 0;
+    this.manualOverrides.clear();
 
     switch (scenario) {
       case "normal":
-        this.runNormalSimulation(true);
+        this.resetNormalDay();
         break;
       case "after-hours":
+        this.devices = createInitialDevices(this.simulatedNow.toISOString());
         this.simulatedNow = new Date("2026-07-04T20:30:00+06:00");
-        this.todayEnergyKwh = 0;
         this.turnAllOff();
-        this.setRoomPattern("work-2", ["fan", "fan", "light", "light", "light"]);
+        this.setRoomPattern("work-2", ["fan", "light"]);
         break;
       case "long-running": {
+        this.devices = createInitialDevices(this.simulatedNow.toISOString());
         this.simulatedNow = new Date("2026-07-04T14:45:00+06:00");
-        this.todayEnergyKwh = 0;
         this.turnAllOff();
         const startedAt = new Date(this.simulatedNow.getTime() - TWO_HOURS_MS - 30 * 60 * 1000);
         this.devices
@@ -123,8 +124,8 @@ export class OfficeStore {
         break;
       }
       case "all-off":
+        this.devices = createInitialDevices(this.simulatedNow.toISOString());
         this.simulatedNow = new Date("2026-07-04T18:10:00+06:00");
-        this.todayEnergyKwh = 0;
         this.turnAllOff();
         break;
     }
@@ -135,12 +136,115 @@ export class OfficeStore {
 
   runAutomaticStep(): OfficeSnapshot {
     if (this.scenario !== "normal") {
-      this.advanceTime(5);
+      this.advanceTime(SIMULATED_MINUTES_PER_TICK);
       return this.commit();
     }
 
-    this.runNormalSimulation();
+    this.advanceNormalClock();
+    this.applyNormalOfficeBehavior();
     return this.commit();
+  }
+
+  private resetNormalDay(): void {
+    this.simulatedNow = new Date(START_TIME);
+    this.devices = createInitialDevices(this.simulatedNow.toISOString());
+    this.todayEnergyKwh = 0;
+    this.afterHoursLeakInjected = false;
+    this.manualOverrides.clear();
+    this.applyNormalOfficeBehavior(true);
+  }
+
+  private advanceNormalClock(): void {
+    const currentHour = this.getDhakaHour(this.simulatedNow);
+
+    if (currentHour >= AFTER_HOURS_END_HOUR || currentHour < OFFICE_START_HOUR) {
+      const nextStart = new Date(this.simulatedNow);
+      if (currentHour >= AFTER_HOURS_END_HOUR) {
+        nextStart.setDate(nextStart.getDate() + 1);
+      }
+      nextStart.setHours(OFFICE_START_HOUR, 0, 0, 0);
+      this.simulatedNow = nextStart;
+      this.todayEnergyKwh = 0;
+      this.afterHoursLeakInjected = false;
+      return;
+    }
+
+    this.advanceTime(SIMULATED_MINUTES_PER_TICK);
+  }
+
+  private applyNormalOfficeBehavior(reset = false): void {
+    const isAfterHours = this.isAfterHours(this.simulatedNow);
+
+    if (isAfterHours) {
+      if (!this.afterHoursLeakInjected) {
+        this.turnAllOff();
+        this.setDeviceState(this.findDevice("work-2-fan-2"), true, this.simulatedNow);
+        this.setDeviceState(this.findDevice("work-2-light-1"), true, this.simulatedNow);
+        this.afterHoursLeakInjected = true;
+        if (!reset) {
+          this.addActivity("system", "Office hours ended. Leak watch is now active.");
+          this.addActivity("device", "Work Room 2 still has devices running after closing time.");
+        }
+      }
+      return;
+    }
+
+    this.afterHoursLeakInjected = false;
+
+    const previousStates = new Map(this.devices.map((device) => [device.id, device.status]));
+    const minuteOfDay = this.getDhakaMinuteOfDay(this.simulatedNow);
+    const guestCycle = Math.floor((minuteOfDay - OFFICE_START_HOUR * 60) / 50) % 2 === 0;
+
+    this.devices.forEach((device) => {
+      const manualOverride = this.manualOverrides.get(device.id);
+      const nextState = manualOverride ?? this.resolveNormalDeviceState(device, guestCycle);
+      this.setDeviceState(device, nextState, this.simulatedNow);
+    });
+
+    if (!reset) {
+      const changedCount = this.devices.filter(
+        (device) => previousStates.get(device.id) !== device.status
+      ).length;
+      if (changedCount > 0) {
+        const activeDevices = this.devices.filter((device) => device.status === "on").length;
+        this.addActivity(
+          "device",
+          `Normal office activity updated: ${activeDevices} devices active across ${this.countActiveRooms()} rooms.`
+        );
+      }
+    }
+  }
+
+  private resolveNormalDeviceState(device: Device, drawingOccupied: boolean): boolean {
+    const hour = this.getDhakaHour(this.simulatedNow);
+
+    if (device.roomId === "drawing") {
+      if (!drawingOccupied) {
+        return device.name === "Light 1";
+      }
+      return device.name === "Fan 1" || device.name === "Light 1" || device.name === "Light 2";
+    }
+
+    if (device.roomId === "work-1") {
+      if (device.type === "fan") {
+        return true;
+      }
+      if (device.name === "Light 3") {
+        return hour < 11 || hour >= 15;
+      }
+      return true;
+    }
+
+    if (device.type === "fan") {
+      return true;
+    }
+    if (device.name === "Light 3") {
+      return hour >= 10 && hour < 15;
+    }
+    if (device.name === "Light 2") {
+      return hour < 13 || hour >= 16;
+    }
+    return true;
   }
 
   private buildRoomSummaries(): RoomSummary[] {
@@ -149,211 +253,77 @@ export class OfficeStore {
       return {
         id: room.id,
         name: room.name,
-        activeDevices: devices.filter((device) => device.isOn).length,
+        activeDevices: devices.filter((device) => device.status === "on").length,
         totalDevices: devices.length,
-        activeFans: devices.filter((device) => device.type === "fan" && device.isOn).length,
-        activeLights: devices.filter((device) => device.type === "light" && device.isOn).length,
-        currentWatts: devices.reduce((sum, device) => sum + device.currentWatts, 0)
+        activeFans: devices.filter((device) => device.type === "fan" && device.status === "on").length,
+        activeLights: devices.filter((device) => device.type === "light" && device.status === "on").length,
+        currentWatts: devices.reduce((sum, device) => sum + device.powerDraw, 0)
       };
     });
   }
 
-  private setRoomPattern(roomId: RoomId, types: Array<"fan" | "light">): void {
-    const devices = this.devices.filter((device) => device.roomId === roomId);
-    devices.forEach((device, index) => {
-      this.setDeviceState(device, Boolean(types[index]));
-    });
+  private setRoomPattern(roomId: RoomId, activeTypes: Array<"fan" | "light">): void {
+    const remaining = [...activeTypes];
+    this.devices
+      .filter((device) => device.roomId === roomId)
+      .forEach((device) => {
+        const index = remaining.indexOf(device.type);
+        const shouldBeOn = index >= 0;
+        if (shouldBeOn) {
+          remaining.splice(index, 1);
+        }
+        this.setDeviceState(device, shouldBeOn, this.simulatedNow);
+      });
   }
 
   private turnAllOff(): void {
-    this.devices.forEach((device) => this.setDeviceState(device, false));
+    this.devices.forEach((device) => this.setDeviceState(device, false, this.simulatedNow));
   }
 
-  private runNormalSimulation(reset = false): void {
-    if (reset) {
-      this.simulatedNow = new Date(START_TIME);
-      this.todayEnergyKwh = 0;
-      this.devices = createInitialDevices(this.simulatedNow.toISOString());
-      this.drawingRoomOccupied = true;
-      this.drawingRoomOccupancyTimer = 60;
-      this.hasProcessedClosing = false;
-      this.devices.forEach((device) => {
-        if (device.roomId === "work-1" || device.roomId === "work-2") {
-          const isOn = device.name !== "Light 3";
-          this.setDeviceState(device, isOn, this.simulatedNow);
-        } else if (device.roomId === "drawing") {
-          const isOn = device.name === "Fan 1" || device.name === "Light 1";
-          this.setDeviceState(device, isOn, this.simulatedNow);
-        }
-      });
-      return;
+  private findDevice(deviceId: string): Device {
+    const device = this.devices.find((candidate) => candidate.id === deviceId);
+    if (!device) {
+      throw new Error(`Device not found: ${deviceId}`);
     }
-
-    const previousTime = new Date(this.simulatedNow);
-    this.advanceNormalClock();
-    const currentTime = this.simulatedNow;
-
-    const prevDhaka = this.getDhakaTime(previousTime);
-    const currDhaka = this.getDhakaTime(currentTime);
-
-    const wasBeforeClose = prevDhaka.hour < OFFICE_END_HOUR;
-    const isAtOrAfterClose = currDhaka.hour >= OFFICE_END_HOUR && currDhaka.hour < 21;
-
-    let changedCount = 0;
-
-    if (wasBeforeClose && isAtOrAfterClose) {
-      this.hasProcessedClosing = true;
-      this.addActivity("system", "Office hours ended. Employees leaving the office.");
-
-      const hasLeak = Math.random() < 0.20;
-      
-      this.devices.forEach((device) => {
-        if (hasLeak && device.roomId === "work-2" && device.name === "Fan 2") {
-          this.setDeviceState(device, true, this.simulatedNow);
-          this.addActivity("device", "Work Room 2 Fan 2 was left running after hours.");
-          changedCount++;
-        } else if (hasLeak && device.roomId === "work-2" && device.name === "Light 1") {
-          this.setDeviceState(device, true, this.simulatedNow);
-          this.addActivity("device", "Work Room 2 Light 1 was left on after hours.");
-          changedCount++;
-        } else {
-          if (device.isOn) {
-            this.setDeviceState(device, false, this.simulatedNow);
-            changedCount++;
-          }
-        }
-      });
-    } else if (currDhaka.hour >= OFFICE_START_HOUR && currDhaka.hour < OFFICE_END_HOUR) {
-      this.hasProcessedClosing = false;
-
-      this.drawingRoomOccupancyTimer -= NORMAL_STEP_MINUTES;
-      if (this.drawingRoomOccupancyTimer <= 0) {
-        this.drawingRoomOccupied = !this.drawingRoomOccupied;
-        this.drawingRoomOccupancyTimer = 40 + Math.floor(Math.random() * 9) * 10;
-        this.addActivity(
-          "system",
-          this.drawingRoomOccupied ? "Guests arrived in the Drawing Room." : "Drawing Room guests left."
-        );
-      }
-
-      this.devices.forEach((device) => {
-        if (device.roomId === "drawing") {
-          if (this.drawingRoomOccupied) {
-            const targetState = device.name === "Fan 1" || device.name === "Light 1" || device.name === "Light 2";
-            if (device.isOn !== targetState) {
-              this.setDeviceState(device, targetState, this.simulatedNow);
-              changedCount++;
-            }
-          } else {
-            const targetState = device.name === "Light 1";
-            if (device.isOn !== targetState) {
-              this.setDeviceState(device, targetState, this.simulatedNow);
-              changedCount++;
-            }
-          }
-        } else {
-          if (device.type === "light" && (device.name === "Light 2" || device.name === "Light 3")) {
-            if (Math.random() < 0.05) {
-              const nextState = !device.isOn;
-              this.setDeviceState(device, nextState, this.simulatedNow);
-              this.addActivity(
-                "device",
-                `${getRoomDefinition(device.roomId).name} ${device.name} was turned ${nextState ? "ON" : "OFF"} by employees.`
-              );
-              changedCount++;
-            }
-          } else {
-            const targetState = device.name !== "Light 3";
-            if (device.isOn !== targetState) {
-              this.setDeviceState(device, targetState, this.simulatedNow);
-              changedCount++;
-            }
-          }
-        }
-      });
-    }
-
-    if (changedCount > 0) {
-      const activeDevices = this.devices.filter((d) => d.isOn).length;
-      this.addActivity(
-        "device",
-        `Normal office activity updated: ${activeDevices} devices active across ${this.countActiveRooms()} rooms.`
-      );
-    }
-  }
-
-  private advanceNormalClock(): void {
-    const dhaka = this.getDhakaTime(this.simulatedNow);
-    
-    if (dhaka.hour >= 21 || dhaka.hour < OFFICE_START_HOUR) {
-      const nextStart = new Date(this.simulatedNow);
-      if (dhaka.hour >= 21) {
-        nextStart.setDate(nextStart.getDate() + 1);
-      }
-      nextStart.setHours(OFFICE_START_HOUR, 0, 0, 0);
-      this.simulatedNow = nextStart;
-      this.todayEnergyKwh = 0;
-      return;
-    }
-
-    this.advanceTime(NORMAL_STEP_MINUTES);
-  }
-
-  private getDhakaTime(at: Date): { hour: number; minute: number } {
-    const hourStr = new Intl.DateTimeFormat("en-GB", {
-      hour: "2-digit",
-      hourCycle: "h23",
-      timeZone: "Asia/Dhaka"
-    }).format(at);
-    const minuteStr = new Intl.DateTimeFormat("en-GB", {
-      minute: "2-digit",
-      timeZone: "Asia/Dhaka"
-    }).format(at);
-    return { hour: Number(hourStr), minute: Number(minuteStr) };
+    return device;
   }
 
   private countActiveRooms(): number {
     return new Set(
-      this.devices.filter((device) => device.isOn).map((device) => device.roomId)
+      this.devices.filter((device) => device.status === "on").map((device) => device.roomId)
     ).size;
   }
 
   private setDeviceState(device: Device, isOn: boolean, changedAt = this.simulatedNow): void {
-    if (device.isOn === isOn) {
-      if (isOn && changedAt.getTime() !== this.simulatedNow.getTime()) {
-        device.lastChangedAt = changedAt.toISOString();
-      }
+    const nextStatus = isOn ? "on" : "off";
+    if (device.status === nextStatus) {
       return;
     }
 
+    device.status = nextStatus;
     device.isOn = isOn;
-    device.currentWatts = isOn ? device.ratedWatts : 0;
-    device.lastChangedAt = changedAt.toISOString();
+    device.powerDraw = isOn ? device.ratedWatts : 0;
+    device.currentWatts = device.powerDraw;
+    device.lastChanged = changedAt.toISOString();
+    device.lastChangedAt = device.lastChanged;
   }
 
   private advanceTime(minutes: number): void {
-    const totalWatts = this.devices.reduce((sum, device) => sum + device.currentWatts, 0);
+    const totalWatts = this.devices.reduce((sum, device) => sum + device.powerDraw, 0);
     this.todayEnergyKwh += (totalWatts * (minutes / 60)) / 1000;
     this.simulatedNow = new Date(this.simulatedNow.getTime() + minutes * 60 * 1000);
   }
 
   private evaluateAlerts(): void {
     const nextAlerts: OfficeAlert[] = [];
-    const hour = Number(
-      new Intl.DateTimeFormat("en-GB", {
-        hour: "2-digit",
-        hourCycle: "h23",
-        timeZone: "Asia/Dhaka"
-      }).format(this.simulatedNow)
-    );
-    const isAfterHours = hour >= OFFICE_END_HOUR || hour < OFFICE_START_HOUR;
+    const afterHours = this.isAfterHours(this.simulatedNow);
 
     for (const roomId of ROOM_IDS) {
       const room = getRoomDefinition(roomId);
       const devices = this.devices.filter((device) => device.roomId === roomId);
-      const activeDevices = devices.filter((device) => device.isOn);
+      const activeDevices = devices.filter((device) => device.status === "on");
 
-      if (isAfterHours && activeDevices.length > 0) {
+      if (afterHours && activeDevices.length > 0) {
         nextAlerts.push({
           id: `after-hours-${roomId}`,
           type: "after-hours",
@@ -366,10 +336,10 @@ export class OfficeStore {
       }
 
       const allOnForTwoHours =
-        devices.every((device) => device.isOn) &&
+        devices.every((device) => device.status === "on") &&
         devices.every(
           (device) =>
-            this.simulatedNow.getTime() - new Date(device.lastChangedAt).getTime() >= TWO_HOURS_MS
+            this.simulatedNow.getTime() - new Date(device.lastChanged).getTime() >= TWO_HOURS_MS
         );
 
       if (allOnForTwoHours) {
@@ -399,7 +369,9 @@ export class OfficeStore {
 
     this.activeAlerts
       .filter((alert) => !nextIds.has(alert.id))
-      .forEach((alert) => this.addActivity("alert", `Resolved: ${alert.title} in ${getRoomDefinition(alert.roomId).name}.`));
+      .forEach((alert) =>
+        this.addActivity("alert", `Resolved: ${alert.title} in ${getRoomDefinition(alert.roomId).name}.`)
+      );
 
     this.activeAlerts = stableAlerts;
   }
@@ -417,7 +389,7 @@ export class OfficeStore {
   private recordPowerPoint(): void {
     this.powerHistory.push({
       timestamp: this.simulatedNow.toISOString(),
-      watts: this.devices.reduce((sum, device) => sum + device.currentWatts, 0)
+      watts: this.devices.reduce((sum, device) => sum + device.powerDraw, 0)
     });
     this.powerHistory = this.powerHistory.slice(-MAX_POWER_POINTS);
   }
@@ -429,5 +401,40 @@ export class OfficeStore {
     const snapshot = this.getSnapshot();
     this.listeners.forEach((listener) => listener(snapshot));
     return snapshot;
+  }
+
+  private getDhakaHour(at: Date): number {
+    return Number(
+      new Intl.DateTimeFormat("en-GB", {
+        hour: "2-digit",
+        hourCycle: "h23",
+        timeZone: "Asia/Dhaka"
+      }).format(at)
+    );
+  }
+
+  private getDhakaMinuteOfDay(at: Date): number {
+    const hour = this.getDhakaHour(at);
+    const minute = Number(
+      new Intl.DateTimeFormat("en-GB", {
+        minute: "2-digit",
+        timeZone: "Asia/Dhaka"
+      }).format(at)
+    );
+    return hour * 60 + minute;
+  }
+
+  private isAfterHours(at: Date): boolean {
+    const hour = this.getDhakaHour(at);
+    return hour >= OFFICE_END_HOUR || hour < OFFICE_START_HOUR;
+  }
+
+  private formatSimulatedTime(at: Date): string {
+    return at.toLocaleTimeString("en-BD", {
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZone: "Asia/Dhaka"
+    });
   }
 }

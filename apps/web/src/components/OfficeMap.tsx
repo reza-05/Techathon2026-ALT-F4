@@ -1,157 +1,204 @@
-import { Fan, Lightbulb, Sofa, Square } from "lucide-react";
-import { ROOMS, type Device, type RoomSummary } from "@altf4/shared";
+import type { ReactNode } from "react";
+import { ROOMS, type Device, type RoomDefinition, type RoomSummary } from "@altf4/shared";
 
 interface OfficeMapProps {
   devices: Device[];
   rooms: RoomSummary[];
-  onToggle: (deviceId: string) => void;
-  busyDeviceId: string | null;
+  onToggleDevice: (deviceId: string) => Promise<void>;
+  togglingIds: string[];
 }
 
-function relativeTime(timestamp: string) {
-  const date = new Date(timestamp);
-  return date.toLocaleTimeString("en-BD", {
-    hour: "2-digit",
-    minute: "2-digit",
-    timeZone: "Asia/Dhaka"
-  });
-}
+const DEVICE_POSITIONS: Record<string, string> = {
+  "drawing-fan-1": "device--drawing-fan-1",
+  "drawing-fan-2": "device--drawing-fan-2",
+  "drawing-light-1": "device--drawing-light-1",
+  "drawing-light-2": "device--drawing-light-2",
+  "drawing-light-3": "device--drawing-light-3",
+  "work-1-fan-1": "device--work-fan-1",
+  "work-1-fan-2": "device--work-fan-2",
+  "work-1-light-1": "device--work-light-1",
+  "work-1-light-2": "device--work-light-2",
+  "work-1-light-3": "device--work-light-3",
+  "work-2-fan-1": "device--work-fan-1",
+  "work-2-fan-2": "device--work-fan-2",
+  "work-2-light-1": "device--work-light-1",
+  "work-2-light-2": "device--work-light-2",
+  "work-2-light-3": "device--work-light-3"
+};
 
-export function OfficeMap({ devices, rooms, onToggle, busyDeviceId }: OfficeMapProps) {
+export function OfficeMap({ devices, rooms, onToggleDevice, togglingIds }: OfficeMapProps) {
   return (
-    <div className="office-shell">
-      <div className="office-shell__topline">
+    <section className="map-card">
+      <div className="map-card__header">
         <div>
-          <span className="eyebrow">LIVE DIGITAL TWIN</span>
-          <h2>Office floor</h2>
+          <span className="section-kicker">Office Layout (Top View)</span>
+          <h2>All rooms have 2 fans and 3 lights</h2>
         </div>
-        <div className="map-legend">
-          <span><i className="legend-dot legend-dot--on" />Running</span>
-          <span><i className="legend-dot" />Off</span>
-        </div>
-      </div>
-
-      <div className="office-map">
-        {ROOMS.map((room) => {
-          const roomDevices = devices.filter((device) => device.roomId === room.id);
-          const summary = rooms.find((candidate) => candidate.id === room.id);
-          const hasActiveDevices = (summary?.activeDevices ?? 0) > 0;
-          const hasLightsOn = roomDevices.some((device) => device.type === "light" && device.isOn);
-
-          return (
-            <section
-              className={`room room--${room.id} ${hasActiveDevices ? "room--active" : ""} ${
-                hasLightsOn ? "room--has-lights-on" : ""
-              }`}
-              key={room.id}
-            >
-              <div className="room__light-glow" />
-              <div className="room__header">
-                <div>
-                  <h3>{room.name}</h3>
-                  <p>{room.purpose}</p>
-                </div>
-                <div className="room__metrics">
-                  <span className="room__watts">{summary?.currentWatts ?? 0}W</span>
-                </div>
-              </div>
-
-              <div className="room__cluster">
-                <div className="room__cluster-label">
-                  <span>Lighting</span>
-                  <small>{summary?.activeLights ?? 0}/3 active</small>
-                </div>
-                <div className="room__lights">
-                  {roomDevices
-                    .filter((device) => device.type === "light")
-                    .map((device) => (
-                      <DeviceButton
-                        key={device.id}
-                        device={device}
-                        onToggle={onToggle}
-                        busy={busyDeviceId === device.id}
-                      />
-                    ))}
-                </div>
-              </div>
-
-              <div className="room__furniture" aria-hidden="true">
-                {room.id === "drawing" ? (
-                  <>
-                    <span className="sofa-shape"><Sofa size={28} /></span>
-                    <span className="coffee-table" />
-                  </>
-                ) : (
-                  <>
-                    <span className="desk"><Square size={28} /><i /><i /></span>
-                    <span className="desk"><Square size={28} /><i /><i /></span>
-                  </>
-                )}
-              </div>
-
-              <div className="room__cluster">
-                <div className="room__cluster-label">
-                  <span>Airflow</span>
-                  <small>{summary?.activeFans ?? 0}/2 active</small>
-                </div>
-                <div className="room__fans">
-                  {roomDevices
-                    .filter((device) => device.type === "fan")
-                    .map((device) => (
-                      <DeviceButton
-                        key={device.id}
-                        device={device}
-                        onToggle={onToggle}
-                        busy={busyDeviceId === device.id}
-                      />
-                    ))}
-                </div>
-              </div>
-
-              <div className="room__footer">
-                <span>{summary?.activeDevices ?? 0}/5 devices online</span>
-                <span>Last physical sync: {relativeTime(
-                  roomDevices
-                    .slice()
-                    .sort((left, right) =>
-                      new Date(right.lastChangedAt).getTime() - new Date(left.lastChangedAt).getTime()
-                    )[0]?.lastChangedAt ?? new Date().toISOString()
-                )}</span>
-              </div>
-            </section>
-          );
-        })}
-        <div className="office-corridor">
-          <span>ENTRY CORRIDOR</span>
-          <i />
+        <div className="map-card__legend">
+          <span><i className="legend-swatch legend-swatch--fan" />Fan · 60W</span>
+          <span><i className="legend-swatch legend-swatch--light" />Light · 15W</span>
+          <span><i className="legend-swatch legend-swatch--door" />Door</span>
+          <span><i className="legend-swatch legend-swatch--window" />Window</span>
         </div>
       </div>
-      <p className="map-hint">Click any light or fan to simulate a physical switch event and watch the live model update.</p>
-    </div>
+
+      <div className="office-blueprint">
+        <div className="office-blueprint__frame">
+          <div className="office-window office-window--drawing-top" />
+          <div className="office-window office-window--work-1-top" />
+          <div className="office-window office-window--work-2-top" />
+          <div className="office-window office-window--drawing-left" />
+          <div className="office-window office-window--work-2-right" />
+
+          <RoomBlock
+            room={ROOMS[0]!}
+            summary={rooms.find((item) => item.id === "drawing")}
+            devices={devices.filter((item) => item.roomId === "drawing")}
+            onToggleDevice={onToggleDevice}
+            togglingIds={togglingIds}
+          >
+            <div className="plant plant--drawing-top-left" />
+            <div className="plant plant--drawing-bottom-right" />
+            <div className="sofa sofa--vertical" />
+            <div className="armchair" />
+            <div className="rug" />
+            <div className="coffee-table" />
+          </RoomBlock>
+
+          <RoomBlock
+            room={ROOMS[1]!}
+            summary={rooms.find((item) => item.id === "work-1")}
+            devices={devices.filter((item) => item.roomId === "work-1")}
+            onToggleDevice={onToggleDevice}
+            togglingIds={togglingIds}
+          >
+            <div className="desk desk--work-1-a"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--top" /></div>
+            <div className="desk desk--work-1-b"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--top" /></div>
+            <div className="desk desk--work-1-c"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--bottom" /><div className="desk__plant" /></div>
+            <div className="desk desk--work-1-d"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--bottom" /><div className="desk__plant" /></div>
+          </RoomBlock>
+
+          <RoomBlock
+            room={ROOMS[2]!}
+            summary={rooms.find((item) => item.id === "work-2")}
+            devices={devices.filter((item) => item.roomId === "work-2")}
+            onToggleDevice={onToggleDevice}
+            togglingIds={togglingIds}
+          >
+            <div className="desk desk--work-2-a"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--top" /><div className="desk__plant" /></div>
+            <div className="desk desk--work-2-b"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--top" /><div className="desk__plant" /></div>
+            <div className="desk desk--work-2-c"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--bottom" /><div className="desk__plant" /></div>
+            <div className="desk desk--work-2-d"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--bottom" /><div className="desk__plant" /></div>
+          </RoomBlock>
+
+          <div className="office-hallway">
+            <div className="plant plant--hall-left" />
+            <div className="plant plant--hall-right" />
+            <div className="water-cooler" />
+            <div className="room-door room-door--entry" aria-hidden="true">
+              <span />
+            </div>
+            <div className="entry-marker">
+              <span>Entry</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="blueprint-footer">
+          {rooms.map((room) => (
+            <div key={room.id} className="blueprint-summary-card">
+              <strong>{room.name}</strong>
+              <span>2 Fans</span>
+              <span>3 Lights</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
   );
 }
 
-interface DeviceButtonProps {
-  device: Device;
-  onToggle: (deviceId: string) => void;
-  busy: boolean;
+function RoomBlock({
+  room,
+  summary,
+  devices,
+  children,
+  onToggleDevice,
+  togglingIds
+}: {
+  room: RoomDefinition;
+  summary?: RoomSummary;
+  devices: Device[];
+  children: ReactNode;
+  onToggleDevice: (deviceId: string) => Promise<void>;
+  togglingIds: string[];
+}) {
+  const activeLightCount = devices.filter(
+    (device) => device.type === "light" && device.status === "on"
+  ).length;
+
+  return (
+    <article
+      className={`blueprint-room blueprint-room--${room.id} blueprint-room--lights-${activeLightCount}`}
+    >
+      <div className={`blueprint-room__surface blueprint-room__surface--${room.id}`}>
+        {children}
+        {devices.map((device) => (
+          <DeviceMarker
+            key={device.id}
+            device={device}
+            extraClass={DEVICE_POSITIONS[device.id] ?? ""}
+            onToggle={onToggleDevice}
+            isToggling={togglingIds.includes(device.id)}
+          />
+        ))}
+      </div>
+      <div className="blueprint-room__label">
+        <div>
+          <h3>{room.name}</h3>
+          <p>{room.purpose}</p>
+        </div>
+        <strong>{summary?.currentWatts ?? 0}W</strong>
+      </div>
+      <div className={`room-door room-door--${room.id}`} aria-hidden="true">
+        <span />
+      </div>
+    </article>
+  );
 }
 
-function DeviceButton({ device, onToggle, busy }: DeviceButtonProps) {
-  const Icon = device.type === "fan" ? Fan : Lightbulb;
+function DeviceMarker({
+  device,
+  extraClass = "",
+  onToggle,
+  isToggling
+}: {
+  device: Device;
+  extraClass?: string;
+  onToggle: (deviceId: string) => Promise<void>;
+  isToggling: boolean;
+}) {
+  const isOn = device.status === "on";
+
   return (
     <button
       type="button"
-      className={`map-device map-device--${device.type} ${device.isOn ? "is-on" : ""}`}
-      onClick={() => onToggle(device.id)}
-      disabled={busy}
-      title={`${device.name}: ${device.isOn ? "ON" : "OFF"} · ${device.currentWatts}W · changed ${relativeTime(device.lastChangedAt)}`}
-      aria-label={`Turn ${device.name} ${device.isOn ? "off" : "on"}`}
+      className={`device-marker ${extraClass} ${isOn ? "device-marker--on" : "device-marker--off"} device-marker--${device.type} ${isToggling ? "device-marker--busy" : ""}`}
+      onClick={() => void onToggle(device.id)}
+      disabled={isToggling}
+      title={`${device.name} · ${isOn ? "ON" : "OFF"} · click to toggle`}
+      aria-label={`${device.name} in ${device.roomId} is ${isOn ? "on" : "off"}. Click to toggle.`}
     >
-      <span className="map-device__halo" />
-      <Icon size={device.type === "fan" ? 29 : 25} strokeWidth={1.8} />
-      <small>{device.name}</small>
-      <em>{device.currentWatts}W</em>
+      {device.type === "fan" ? (
+        <span className="ceiling-fan" aria-hidden="true">
+          <i />
+          <i />
+          <i />
+          <b />
+        </span>
+      ) : (
+        <span className="ceiling-light" aria-hidden="true" />
+      )}
     </button>
   );
 }
