@@ -76,6 +76,12 @@ export function OfficeMap({ devices, rooms, onToggleDevice, togglingIds }: Offic
             <div className="desk desk--work-1-b"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--top" /></div>
             <div className="desk desk--work-1-c"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--bottom" /><div className="desk__plant" /></div>
             <div className="desk desk--work-1-d"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--bottom" /><div className="desk__plant" /></div>
+            <div className="filing-cabinet">
+              <span />
+              <i />
+              <i />
+              <i />
+            </div>
           </RoomBlock>
 
           <RoomBlock
@@ -89,6 +95,11 @@ export function OfficeMap({ devices, rooms, onToggleDevice, togglingIds }: Offic
             <div className="desk desk--work-2-b"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--top" /><div className="desk__plant" /></div>
             <div className="desk desk--work-2-c"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--bottom" /><div className="desk__plant" /></div>
             <div className="desk desk--work-2-d"><div className="desk__monitor" /><div className="desk__keyboard" /><div className="desk__chair desk__chair--bottom" /><div className="desk__plant" /></div>
+            <div className="corner-bookcase">
+              <i />
+              <i />
+              <i />
+            </div>
           </RoomBlock>
 
           <div className="office-hallway">
@@ -104,14 +115,69 @@ export function OfficeMap({ devices, rooms, onToggleDevice, togglingIds }: Offic
           </div>
         </div>
 
-        <div className="blueprint-footer">
-          {rooms.map((room) => (
-            <div key={room.id} className="blueprint-summary-card">
-              <strong>{room.name}</strong>
-              <span>2 Fans</span>
-              <span>3 Lights</span>
-            </div>
-          ))}
+        <div className="blueprint-footer" style={{ display: "flex", gap: "20px", flexWrap: "wrap", justifyContent: "space-between", marginTop: "24px" }}>
+          {rooms.map((room) => {
+            const roomDevices = devices.filter((d) => d.roomId === room.id);
+            const totalPower = roomDevices.reduce((sum, d) => sum + d.powerDraw, 0);
+
+            return (
+              <div key={room.id} className="blueprint-summary-card" style={{ flex: 1, minWidth: "250px", padding: "18px 20px", borderRadius: "18px", border: "1px solid var(--line)", background: "var(--surface)", boxShadow: "var(--shadow)", transition: "all 0.25s ease" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px", borderBottom: "1px solid var(--line)", paddingBottom: "10px" }}>
+                  <strong style={{ fontSize: "16px", color: "var(--text)", fontWeight: 700, letterSpacing: "0.2px" }}>{room.name}</strong>
+                  <span style={{ fontSize: "15px", fontWeight: 700, color: "var(--text)" }}>{totalPower} W</span>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {roomDevices.map((device) => {
+                    const isOn = device.status === "on";
+                    return (
+                      <div key={device.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "6px 0", borderBottom: "1px dashed var(--line)", lastChild: { borderBottom: "none" } } as any}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          {/* LED indicator */}
+                          <span style={{
+                            width: "6px",
+                            height: "6px",
+                            borderRadius: "50%",
+                            background: isOn ? "var(--accent-mint)" : "var(--muted)",
+                            boxShadow: isOn ? "0 0 8px var(--accent-mint)" : "none",
+                            opacity: isOn ? 1 : 0.35,
+                            transition: "all 0.2s ease"
+                          }} />
+                          
+                          {/* Device Name */}
+                          <span style={{
+                            color: isOn ? "var(--text)" : "var(--muted)",
+                            fontWeight: isOn ? 600 : 400,
+                            fontSize: "15px"
+                          }}>{device.name}</span>
+
+                          {/* ON/OFF Pill Badge */}
+                          <span style={{
+                            fontSize: "10px",
+                            fontWeight: 800,
+                            padding: "2px 6px",
+                            borderRadius: "10px",
+                            background: isOn ? "var(--success-bg)" : "var(--surface-soft)",
+                            color: isOn ? "var(--success-text)" : "var(--muted)",
+                            border: `1px solid ${isOn ? "var(--success-border)" : "var(--line)"}`,
+                            letterSpacing: "0.2px",
+                            textTransform: "uppercase"
+                          }}>{isOn ? "ON" : "OFF"}</span>
+                        </div>
+                        
+                        {/* Power Draw */}
+                        <span style={{
+                          color: isOn ? "var(--text)" : "var(--muted)",
+                          fontWeight: 500,
+                          fontSize: "14px",
+                          opacity: isOn ? 1 : 0.5
+                        }}>{device.powerDraw} W</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </section>
@@ -142,6 +208,7 @@ function RoomBlock({
       className={`blueprint-room blueprint-room--${room.id} blueprint-room--lights-${activeLightCount}`}
     >
       <div className={`blueprint-room__surface blueprint-room__surface--${room.id}`}>
+        <div className="blueprint-room__floor-glow" />
         {children}
         {devices.map((device) => (
           <DeviceMarker
@@ -158,7 +225,7 @@ function RoomBlock({
           <h3>{room.name}</h3>
           <p>{room.purpose}</p>
         </div>
-        <strong>{summary?.currentWatts ?? 0}W</strong>
+        <strong>{summary?.currentWatts ?? 0} W</strong>
       </div>
       <div className={`room-door room-door--${room.id}`} aria-hidden="true">
         <span />
@@ -186,8 +253,8 @@ function DeviceMarker({
       className={`device-marker ${extraClass} ${isOn ? "device-marker--on" : "device-marker--off"} device-marker--${device.type} ${isToggling ? "device-marker--busy" : ""}`}
       onClick={() => void onToggle(device.id)}
       disabled={isToggling}
-      title={`${device.name} · ${isOn ? "ON" : "OFF"} · click to toggle`}
-      aria-label={`${device.name} in ${device.roomId} is ${isOn ? "on" : "off"}. Click to toggle.`}
+      aria-label={`${device.name} in ${device.roomId}, ${device.powerDraw} watts, is ${isOn ? "on" : "off"}. Click to toggle.`}
+      aria-describedby={`${device.id}-tooltip`}
     >
       {device.type === "fan" ? (
         <span className="ceiling-fan" aria-hidden="true">
@@ -199,6 +266,14 @@ function DeviceMarker({
       ) : (
         <span className="ceiling-light" aria-hidden="true" />
       )}
+      <span
+        id={`${device.id}-tooltip`}
+        className="device-marker__tooltip"
+        role="tooltip"
+      >
+        <span>{device.name}</span>
+        <small>{device.powerDraw} W · {isOn ? "ON" : "OFF"}</small>
+      </span>
     </button>
   );
 }

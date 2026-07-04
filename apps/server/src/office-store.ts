@@ -95,6 +95,14 @@ export class OfficeStore {
       "device",
       `${getRoomDefinition(device.roomId).name} ${device.name} turned ${device.status}.`
     );
+
+    const isAfterHours = this.isAfterHours(this.simulatedNow);
+    const hasAnyActive = this.devices.some((d) => d.status === "on");
+    if (isAfterHours && !hasAnyActive) {
+      this.scenario = "all-off";
+      this.addActivity("scenario", "All devices powered down outside operating hours. Entered Closed Idle mode.");
+    }
+
     return this.commit();
   }
 
@@ -130,11 +138,21 @@ export class OfficeStore {
         break;
     }
 
-    this.addActivity("scenario", `Simulation changed to ${scenario.replace("-", " ")} mode.`);
+    this.addActivity("scenario", `Operating state updated: ${scenario === "all-off" ? "closed-idle" : scenario.replace("-", " ")}.`);
     return this.commit();
   }
 
   runAutomaticStep(): OfficeSnapshot {
+    if (this.scenario === "all-off") {
+      this.advanceTime(SIMULATED_MINUTES_PER_TICK);
+      const isAfterHours = this.isAfterHours(this.simulatedNow);
+      if (!isAfterHours) {
+        this.scenario = "normal";
+        this.addActivity("scenario", "Office operating hours started. System initialized to active monitoring.");
+      }
+      return this.commit();
+    }
+
     if (this.scenario !== "normal") {
       this.advanceTime(SIMULATED_MINUTES_PER_TICK);
       return this.commit();
@@ -182,8 +200,8 @@ export class OfficeStore {
         this.setDeviceState(this.findDevice("work-2-light-1"), true, this.simulatedNow);
         this.afterHoursLeakInjected = true;
         if (!reset) {
-          this.addActivity("system", "Office hours ended. Leak watch is now active.");
-          this.addActivity("device", "Work Room 2 still has devices running after closing time.");
+          this.addActivity("system", "Office hours ended. Monitoring inactive rooms for anomalies.");
+          this.addActivity("device", "Anomalous energy draw detected in Work Room 2.");
         }
       }
       return;
@@ -329,9 +347,12 @@ export class OfficeStore {
           type: "after-hours",
           severity: "critical",
           roomId,
+          roomName: room.name,
           title: "After-hours energy leak",
           message: `${room.name} still has ${activeDevices.length} device${activeDevices.length === 1 ? "" : "s"} running after 5 PM.`,
-          triggeredAt: this.simulatedNow.toISOString()
+          triggeredAt: this.simulatedNow.toISOString(),
+          resolvedAt: null,
+          active: true
         });
       }
 
@@ -348,18 +369,26 @@ export class OfficeStore {
           type: "long-running",
           severity: "warning",
           roomId,
+          roomName: room.name,
           title: "Unusual continuous usage",
           message: `Every device in ${room.name} has been ON continuously for more than 2 hours.`,
-          triggeredAt: this.simulatedNow.toISOString()
+          triggeredAt: this.simulatedNow.toISOString(),
+          resolvedAt: null,
+          active: true
         });
       }
     }
 
     const previousAlerts = new Map(this.activeAlerts.map((alert) => [alert.id, alert]));
-    const stableAlerts = nextAlerts.map((alert) => ({
-      ...alert,
-      triggeredAt: previousAlerts.get(alert.id)?.triggeredAt ?? alert.triggeredAt
-    }));
+    const stableAlerts: OfficeAlert[] = nextAlerts.map((alert) => {
+      const prev = previousAlerts.get(alert.id);
+      return {
+        ...alert,
+        triggeredAt: prev?.triggeredAt ?? alert.triggeredAt,
+        resolvedAt: prev ? prev.resolvedAt : null,
+        active: true
+      };
+    });
     const previousIds = new Set(previousAlerts.keys());
     const nextIds = new Set(stableAlerts.map((alert) => alert.id));
 

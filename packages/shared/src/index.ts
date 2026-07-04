@@ -45,9 +45,12 @@ export interface OfficeAlert {
   type: AlertType;
   severity: AlertSeverity;
   roomId: RoomId;
+  roomName: string;
   title: string;
   message: string;
   triggeredAt: string;
+  resolvedAt?: string | null;
+  active: boolean;
 }
 
 export interface ActivityEvent {

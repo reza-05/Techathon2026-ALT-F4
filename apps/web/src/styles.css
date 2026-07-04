@@ -29,39 +29,59 @@ a {
 }
 
 .app-shell {
-  --bg: #f8f9fc;
-  --surface: #ffffff;
-  --surface-soft: #f3f4f6;
-  --text: #111827;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
-  --off: #e5e7eb;
-  --danger-bg: rgba(239, 68, 68, 0.08);
+  --darkness-factor: 0;
+  
+  --bg: color-mix(in srgb, #09111b calc(var(--darkness-factor) * 100%), #f8f9fc);
+  --surface: color-mix(in srgb, #0f1724 calc(var(--darkness-factor) * 100%), #ffffff);
+  --surface-soft: color-mix(in srgb, #131d2b calc(var(--darkness-factor) * 100%), #f3f4f6);
+  --text: color-mix(in srgb, #f8fafc calc(var(--darkness-factor) * 100%), #111827);
+  --muted: color-mix(in srgb, #94a3b8 calc(var(--darkness-factor) * 100%), #6b7280);
+  --line: color-mix(in srgb, rgba(148, 163, 184, 0.18) calc(var(--darkness-factor) * 100%), #e5e7eb);
+  --shadow: color-mix(in srgb, rgba(0, 0, 0, 0.34) calc(var(--darkness-factor) * 100%), rgba(0, 0, 0, 0.03));
+  --off: color-mix(in srgb, #334155 calc(var(--darkness-factor) * 100%), #e5e7eb);
+  --danger-bg: color-mix(in srgb, rgba(239, 68, 68, 0.14) calc(var(--darkness-factor) * 100%), rgba(239, 68, 68, 0.08));
+  
+  /* Semantic tokens */
+  --surface-primary: var(--surface);
+  --surface-secondary: var(--bg);
+  --surface-elevated: var(--surface-soft);
+  --text-primary: var(--text);
+  --text-secondary: color-mix(in srgb, #cbd5e1 calc(var(--darkness-factor) * 100%), #374151);
+  --text-muted: var(--muted);
+  --border-subtle: var(--line);
+  --accent-mint: color-mix(in srgb, #34d399 calc(var(--darkness-factor) * 100%), #10b981);
+  
+  --alert-bg: color-mix(in srgb, rgba(239, 68, 68, 0.12) calc(var(--darkness-factor) * 100%), rgba(239, 68, 68, 0.06));
+  --alert-border: color-mix(in srgb, rgba(239, 68, 68, 0.32) calc(var(--darkness-factor) * 100%), rgba(239, 68, 68, 0.22));
+  --alert-text: color-mix(in srgb, #fca5a5 calc(var(--darkness-factor) * 100%), #ef4444);
+  
+  --warning-bg: color-mix(in srgb, rgba(245, 158, 11, 0.12) calc(var(--darkness-factor) * 100%), rgba(245, 158, 11, 0.06));
+  --warning-border: color-mix(in srgb, rgba(245, 158, 11, 0.32) calc(var(--darkness-factor) * 100%), rgba(245, 158, 11, 0.22));
+  --warning-text: color-mix(in srgb, #fde047 calc(var(--darkness-factor) * 100%), #d97706);
+  
+  --success-bg: color-mix(in srgb, rgba(16, 185, 129, 0.12) calc(var(--darkness-factor) * 100%), rgba(16, 185, 129, 0.06));
+  --success-border: color-mix(in srgb, rgba(16, 185, 129, 0.32) calc(var(--darkness-factor) * 100%), rgba(16, 185, 129, 0.22));
+  --success-text: color-mix(in srgb, #6ee7b7 calc(var(--darkness-factor) * 100%), #059669);
+  
+  --system-bg: color-mix(in srgb, rgba(59, 130, 246, 0.12) calc(var(--darkness-factor) * 100%), rgba(59, 130, 246, 0.06));
+  --system-border: color-mix(in srgb, rgba(59, 130, 246, 0.32) calc(var(--darkness-factor) * 100%), rgba(59, 130, 246, 0.22));
+  --system-text: color-mix(in srgb, #93c5fd calc(var(--darkness-factor) * 100%), #2563eb);
+  
+  --scenario-bg: color-mix(in srgb, rgba(139, 92, 246, 0.12) calc(var(--darkness-factor) * 100%), rgba(139, 92, 246, 0.06));
+  --scenario-border: color-mix(in srgb, rgba(139, 92, 246, 0.32) calc(var(--darkness-factor) * 100%), rgba(139, 92, 246, 0.22));
+  --scenario-text: color-mix(in srgb, #c4b5fd calc(var(--darkness-factor) * 100%), #7c3aed);
+  
+  --discord-bg: color-mix(in srgb, rgba(88, 101, 242, 0.12) calc(var(--darkness-factor) * 100%), rgba(88, 101, 242, 0.06));
+  --discord-border: color-mix(in srgb, rgba(88, 101, 242, 0.32) calc(var(--darkness-factor) * 100%), rgba(88, 101, 242, 0.22));
+  --discord-text: color-mix(in srgb, #a5b4fc calc(var(--darkness-factor) * 100%), #5865f2);
+
   min-height: 100vh;
   background: var(--bg);
   color: var(--text);
-  transition:
-    background 320ms ease,
-    color 320ms ease,
-    --bg 320ms ease,
-    --surface 320ms ease,
-    --text 320ms ease,
-    --muted 320ms ease,
-    --line 320ms ease;
 }
 
-.app-shell--after-hours {
+.app-shell--dark {
   color-scheme: dark;
-  --bg: #09111b;
-  --surface: #0f1724;
-  --surface-soft: #131d2b;
-  --text: #f8fafc;
-  --muted: #94a3b8;
-  --line: rgba(148, 163, 184, 0.18);
-  --shadow: 0 18px 48px rgba(0, 0, 0, 0.34);
-  --off: #334155;
-  --danger-bg: rgba(239, 68, 68, 0.14);
 }
 
 .topbar {
@@ -189,9 +209,14 @@ a {
   font-size: 14px;
 }
 
+.kpi-card--danger {
+  background: var(--alert-bg) !important;
+  border-color: var(--alert-border) !important;
+}
+
 .kpi-card--danger .kpi-card__icon,
 .kpi-card--danger strong {
-  color: var(--danger);
+  color: var(--alert-text) !important;
 }
 
 .workspace-grid {
@@ -311,7 +336,12 @@ a {
 .blueprint-room__surface {
   position: absolute;
   inset: 0;
-  background-size: 34px 34px;
+  background:
+    radial-gradient(circle at 8px 8px, rgba(51, 65, 85, .09) 0 1px, transparent 1.4px),
+    linear-gradient(rgba(51, 65, 85, 0.045) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(51, 65, 85, 0.045) 1px, transparent 1px),
+    linear-gradient(135deg, #dededb, #efeee9 50%, #deded9);
+  background-size: 31px 31px, 44px 44px, 44px 44px, auto;
   overflow: hidden;
   isolation: isolate;
 }
@@ -319,7 +349,7 @@ a {
 .blueprint-room__surface::before {
   content: "";
   position: absolute;
-  z-index: 0;
+  z-index: 2;
   inset: 0;
   pointer-events: none;
   background: rgba(15, 23, 42, 0.72);
@@ -327,63 +357,83 @@ a {
   transition: opacity .55s ease;
 }
 
-.blueprint-room--lights-0 { --ambient-dim: .18; }
-.blueprint-room--lights-1 { --ambient-dim: .11; }
-.blueprint-room--lights-2 { --ambient-dim: .05; }
-.blueprint-room--lights-3 { --ambient-dim: 0; }
+.blueprint-room__floor-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
 
-.app-shell--after-hours .blueprint-room--lights-0 { --ambient-dim: .32; }
-.app-shell--after-hours .blueprint-room--lights-1 { --ambient-dim: .21; }
-.app-shell--after-hours .blueprint-room--lights-2 { --ambient-dim: .11; }
-.app-shell--after-hours .blueprint-room--lights-3 { --ambient-dim: .025; }
+.blueprint-room--lights-1 .blueprint-room__floor-glow,
+.blueprint-room--lights-2 .blueprint-room__floor-glow,
+.blueprint-room--lights-3 .blueprint-room__floor-glow {
+  opacity: 1;
+}
 
 .blueprint-room__surface > .sofa,
 .blueprint-room__surface > .armchair,
 .blueprint-room__surface > .rug,
 .blueprint-room__surface > .coffee-table,
 .blueprint-room__surface > .desk,
-.blueprint-room__surface > .plant {
+.blueprint-room__surface > .plant,
+.blueprint-room__surface > .filing-cabinet,
+.blueprint-room__surface > .corner-bookcase {
   z-index: 1;
 }
 
-.blueprint-room__surface--drawing {
+.blueprint-room__surface--drawing .blueprint-room__floor-glow {
   background:
-    linear-gradient(rgba(97, 72, 28, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(97, 72, 28, 0.035) 1px, transparent 1px),
+    radial-gradient(circle at 9px 11px, rgba(92, 65, 28, .055) 0 1px, transparent 1.5px),
+    linear-gradient(rgba(97, 72, 28, 0.055) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(97, 72, 28, 0.055) 1px, transparent 1px),
     radial-gradient(circle at 50% 38%, rgba(255, 255, 255, 0.56), transparent 54%),
     linear-gradient(135deg, #e9dec5, #f4ead5 52%, #e8dcc1);
+  background-size: 28px 28px, 42px 42px, 42px 42px, auto, auto;
 }
 
-.blueprint-room__surface--work-1 {
-  background:
-    linear-gradient(rgba(51, 65, 85, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(51, 65, 85, 0.035) 1px, transparent 1px),
-    radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.7), transparent 58%),
-    linear-gradient(135deg, #dededb, #efeee9 50%, #deded9);
+.blueprint-room__surface--work-1 .blueprint-room__floor-glow {
+  background: radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.7), transparent 58%);
+  background-size: auto;
 }
 
-.blueprint-room__surface--work-2 {
+.blueprint-room__surface--work-2 .blueprint-room__floor-glow {
   background:
-    repeating-linear-gradient(90deg, rgba(98, 67, 27, 0.045) 0 1px, transparent 1px 46px),
-    linear-gradient(rgba(120, 86, 36, 0.028) 1px, transparent 1px),
+    radial-gradient(ellipse at 18px 24px, rgba(105, 70, 28, .11) 0 2px, transparent 3px),
+    repeating-linear-gradient(0deg, rgba(97, 64, 26, .035) 0 1px, transparent 1px 11px),
+    repeating-linear-gradient(90deg, rgba(98, 67, 27, 0.075) 0 1px, transparent 1px 46px),
+    linear-gradient(rgba(120, 86, 36, 0.025) 1px, transparent 1px),
     radial-gradient(circle at 50% 35%, rgba(255, 255, 255, 0.38), transparent 56%),
     linear-gradient(135deg, #dfc49b, #ecd6b4 52%, #dcbf91);
+  background-size: 72px 92px, auto, auto, 46px 46px, auto, auto;
 }
+
+.blueprint-room--lights-0 { --ambient-dim: .42; }
+.blueprint-room--lights-1 { --ambient-dim: .25; }
+.blueprint-room--lights-2 { --ambient-dim: .10; }
+.blueprint-room--lights-3 { --ambient-dim: 0; }
+
+.app-shell--after-hours .blueprint-room--lights-0 { --ambient-dim: .52; }
+.app-shell--after-hours .blueprint-room--lights-1 { --ambient-dim: .36; }
+.app-shell--after-hours .blueprint-room--lights-2 { --ambient-dim: .20; }
+.app-shell--after-hours .blueprint-room--lights-3 { --ambient-dim: .05; }
 
 .blueprint-room__label {
   position: absolute;
   z-index: 3;
-  left: 14px;
-  top: 14px;
+  left: 7px;
+  top: 7px;
   right: auto;
   bottom: auto;
-  min-width: 162px;
-  max-width: 198px;
+  width: max-content;
+  min-width: 0;
+  max-width: calc(100% - 14px);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
-  padding: 8px 10px;
+  gap: 12px;
+  padding: 6px 8px;
   text-align: left;
   color: #1e293b;
   background: rgba(255, 255, 255, .68);
@@ -395,32 +445,33 @@ a {
 
 .blueprint-room__label h3 {
   margin: 0;
-  font-size: clamp(15px, 1.1vw, 18px);
-  letter-spacing: -0.03em;
+  font-size: clamp(12px, .9vw, 14px);
+  letter-spacing: -0.02em;
   color: #172033;
   font-weight: 760;
+  white-space: nowrap;
 }
 
 .blueprint-room__label p {
-  margin: 3px 0 0;
-  font-size: 12px;
-  color: #64748b;
-  font-weight: 520;
+  display: none;
 }
 
 .blueprint-room__label strong {
   flex-shrink: 0;
-  margin-top: 1px;
-  font-size: 15px;
+  margin-top: 0;
+  padding: 3px 6px;
+  font-size: 12px;
   line-height: 1;
-  color: #0f766e;
+  color: #ffffff;
+  background: #0f766e;
+  border-radius: 6px;
   font-variant-numeric: tabular-nums;
 }
 
 .blueprint-room--work-1 .blueprint-room__label,
 .blueprint-room--work-2 .blueprint-room__label {
-  left: 14px;
-  top: 14px;
+  left: 7px;
+  top: 7px;
 }
 
 .app-shell--after-hours .blueprint-room__label {
@@ -431,9 +482,13 @@ a {
 }
 
 .app-shell--after-hours .blueprint-room__label p,
-.app-shell--after-hours .blueprint-room__label strong,
 .app-shell--after-hours .blueprint-room__label h3 {
   color: #f8fafc;
+}
+
+.app-shell--after-hours .blueprint-room__label strong {
+  color: #082f49;
+  background: #67e8f9;
 }
 
 .office-hallway {
@@ -443,10 +498,21 @@ a {
   border: 7px solid #3f4650;
   border-top-width: 5px;
   background:
-    linear-gradient(rgba(97, 72, 28, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(97, 72, 28, 0.04) 1px, transparent 1px),
+    radial-gradient(circle at 13px 17px, rgba(93, 65, 30, .055) 0 1px, transparent 1.5px),
+    linear-gradient(rgba(97, 72, 28, 0.065) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(97, 72, 28, 0.065) 1px, transparent 1px),
     linear-gradient(180deg, #f1e5cc, #efe1c6);
-  background-size: 34px 34px;
+  background-size: 29px 29px, 36px 36px, 36px 36px, auto;
+  transition: background 320ms ease, border-color 320ms ease;
+}
+
+.app-shell--after-hours .office-hallway {
+  background:
+    radial-gradient(circle at 13px 17px, rgba(15, 23, 42, .08) 0 1px, transparent 1.4px),
+    linear-gradient(rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(15, 23, 42, 0.04) 1px, transparent 1px),
+    linear-gradient(180deg, #72767f, #666a72) !important;
+  border-color: #3f4650 !important;
 }
 
 .office-window {
@@ -725,7 +791,79 @@ a {
   bottom: 12px;
   border-radius: 50%;
   background: radial-gradient(circle at 40% 40%, #7fb958, #3f6f2e);
+  filter: drop-shadow(0 3px 2px rgba(42, 68, 31, .25));
 }
+
+.filing-cabinet,
+.corner-bookcase {
+  position: absolute;
+  filter: drop-shadow(8px 12px 8px rgba(35, 30, 22, .22));
+}
+
+.filing-cabinet {
+  right: 10px;
+  top: 256px;
+  width: 42px;
+  height: 78px;
+  border: 1px solid rgba(55, 65, 81, .24);
+  border-radius: 5px;
+  background:
+    linear-gradient(90deg, rgba(255,255,255,.35), transparent 45%),
+    repeating-linear-gradient(0deg, #aeb5bd 0 24px, #78838f 25px 26px);
+  box-shadow: inset 0 0 0 2px rgba(255,255,255,.18);
+}
+
+.filing-cabinet span {
+  position: absolute;
+  left: 7px;
+  top: -6px;
+  width: 28px;
+  height: 9px;
+  border-radius: 2px;
+  background:
+    repeating-linear-gradient(90deg, #f5efe2 0 3px, #c8bba7 4px 5px);
+  box-shadow: 0 3px 4px rgba(15,23,42,.18);
+}
+
+.filing-cabinet i {
+  position: absolute;
+  left: 14px;
+  width: 14px;
+  height: 3px;
+  border-radius: 2px;
+  background: #59636e;
+}
+
+.filing-cabinet i:nth-of-type(1) { top: 13px; }
+.filing-cabinet i:nth-of-type(2) { top: 38px; }
+.filing-cabinet i:nth-of-type(3) { top: 64px; }
+
+.corner-bookcase {
+  left: 10px;
+  top: 244px;
+  width: 38px;
+  height: 96px;
+  border: 2px solid rgba(79, 51, 24, .34);
+  border-radius: 4px;
+  background:
+    repeating-linear-gradient(0deg, transparent 0 29px, rgba(76,48,22,.34) 30px 32px),
+    linear-gradient(90deg, #9a6f43, #bd8f5a 52%, #8b623a);
+  box-shadow: inset 0 0 0 3px rgba(255,255,255,.08);
+}
+
+.corner-bookcase i {
+  position: absolute;
+  left: 7px;
+  width: 6px;
+  height: 19px;
+  border-radius: 1px;
+  background: #4f6b7a;
+  box-shadow: 8px 1px #b65c4c, 16px -1px #d4a84f;
+}
+
+.corner-bookcase i:nth-child(1) { top: 7px; }
+.corner-bookcase i:nth-child(2) { top: 38px; transform: rotate(3deg); }
+.corner-bookcase i:nth-child(3) { top: 68px; transform: rotate(-4deg); }
 
 .desk--work-1-a { left: 48px; top: 152px; }
 .desk--work-1-b { right: 48px; top: 152px; }
@@ -814,6 +952,105 @@ a {
   filter: brightness(1.06) drop-shadow(0 7px 6px rgba(15, 23, 42, .18));
 }
 
+.device-marker__tooltip {
+  position: absolute;
+  z-index: 12;
+  left: 50%;
+  bottom: calc(100% + 9px);
+  width: max-content;
+  min-width: 82px;
+  padding: 7px 9px;
+  border: 1px solid rgba(255, 255, 255, .13);
+  border-radius: 8px;
+  color: #f8fafc;
+  background: rgba(15, 23, 42, .94);
+  box-shadow: 0 10px 24px rgba(15, 23, 42, .2);
+  backdrop-filter: blur(10px);
+  text-align: left;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-50%, 5px) scale(.96);
+  transform-origin: center bottom;
+  transition: opacity .16s ease, transform .16s ease;
+}
+
+.device-marker__tooltip::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -5px;
+  width: 8px;
+  height: 8px;
+  border-right: 1px solid rgba(255, 255, 255, .13);
+  border-bottom: 1px solid rgba(255, 255, 255, .13);
+  background: rgba(15, 23, 42, .94);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.device-marker__tooltip > span {
+  display: block;
+  font-size: 11px;
+  font-weight: 750;
+  line-height: 1.2;
+  letter-spacing: .01em;
+}
+
+.device-marker__tooltip small {
+  display: block;
+  margin-top: 3px;
+  color: #a5f3fc;
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.device-marker:hover .device-marker__tooltip,
+.device-marker:focus-visible .device-marker__tooltip {
+  opacity: 1;
+  transform: translate(-50%, 0) scale(1);
+}
+
+.device--drawing-fan-1 .device-marker__tooltip,
+.device--drawing-light-1 .device-marker__tooltip,
+.device--drawing-light-2 .device-marker__tooltip,
+.device--work-fan-1 .device-marker__tooltip,
+.device--work-light-1 .device-marker__tooltip,
+.device--work-light-2 .device-marker__tooltip {
+  top: calc(100% + 9px);
+  bottom: auto;
+  transform: translate(-50%, -5px) scale(.96);
+  transform-origin: center top;
+}
+
+.device--drawing-fan-1 .device-marker__tooltip::after,
+.device--drawing-light-1 .device-marker__tooltip::after,
+.device--drawing-light-2 .device-marker__tooltip::after,
+.device--work-fan-1 .device-marker__tooltip::after,
+.device--work-light-1 .device-marker__tooltip::after,
+.device--work-light-2 .device-marker__tooltip::after {
+  top: -5px;
+  bottom: auto;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, .13);
+  border-top: 1px solid rgba(255, 255, 255, .13);
+}
+
+.device--drawing-fan-1:hover .device-marker__tooltip,
+.device--drawing-fan-1:focus-visible .device-marker__tooltip,
+.device--drawing-light-1:hover .device-marker__tooltip,
+.device--drawing-light-1:focus-visible .device-marker__tooltip,
+.device--drawing-light-2:hover .device-marker__tooltip,
+.device--drawing-light-2:focus-visible .device-marker__tooltip,
+.device--work-fan-1:hover .device-marker__tooltip,
+.device--work-fan-1:focus-visible .device-marker__tooltip,
+.device--work-light-1:hover .device-marker__tooltip,
+.device--work-light-1:focus-visible .device-marker__tooltip,
+.device--work-light-2:hover .device-marker__tooltip,
+.device--work-light-2:focus-visible .device-marker__tooltip {
+  transform: translate(-50%, 0) scale(1);
+}
+
 .device-marker--fan {
   width: 76px;
   height: 76px;
@@ -836,7 +1073,7 @@ a {
 }
 
 .device-marker--light.device-marker--on {
-  filter: drop-shadow(0 0 10px rgba(245, 158, 11, .5));
+  filter: drop-shadow(0 0 11px rgba(245, 158, 11, .7));
 }
 
 .device-marker--light::before {
@@ -845,8 +1082,8 @@ a {
   z-index: -1;
   left: 50%;
   top: 50%;
-  width: 230px;
-  height: 230px;
+  width: 140px;
+  height: 140px;
   border-radius: 50%;
   transform: translate(-50%, -50%);
   pointer-events: none;
@@ -854,15 +1091,15 @@ a {
 }
 
 .device-marker--light.device-marker--on::before {
-  width: 260px;
-  height: 260px;
-  opacity: .76;
+  width: 175px;
+  height: 175px;
+  opacity: .74;
   background: radial-gradient(
     circle,
-    rgba(255, 255, 251, .52) 0 12%,
-    rgba(255, 242, 211, .28) 29%,
-    rgba(242, 197, 118, .09) 48%,
-    transparent 70%
+    rgba(255, 255, 251, .6) 0 15%,
+    rgba(255, 242, 211, .3) 35%,
+    rgba(242, 197, 118, .1) 55%,
+    transparent 75%
   );
 }
 
@@ -975,9 +1212,19 @@ a {
 }
 
 .alerts-sidebar {
-  position: sticky;
-  top: 24px;
   padding: 24px 20px;
+  transition: background 300ms ease, border-color 300ms ease;
+}
+
+.alerts-sidebar--active {
+  background: var(--alert-bg) !important;
+  border-color: var(--alert-border) !important;
+}
+
+.activity-card:hover {
+  transform: translateY(-1.5px);
+  border-color: var(--line) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.05);
 }
 
 .alerts-sidebar__header {
@@ -1195,8 +1442,10 @@ a {
   }
 
   .blueprint-room__label {
-    width: 78%;
-    padding: 12px 14px;
+    width: auto;
+    min-width: 0;
+    max-width: calc(100% - 14px);
+    padding: 6px 8px;
   }
 
   .blueprint-room__label h3 {

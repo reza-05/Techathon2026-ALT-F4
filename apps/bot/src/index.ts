@@ -55,7 +55,7 @@ async function startBot(botToken: string, applicationId: string) {
     } catch (error) {
       console.error("Discord command failed:", error);
       await interaction.editReply(
-        "I can’t reach the live office backend right now. Please check that the PowerDown server is running."
+        "I can’t reach the live office telemetry feed right now. Please check that the PowerDown mission control is running."
       );
     }
   });
@@ -140,7 +140,7 @@ async function handlePrefixCommand(message: Message<boolean>) {
   } catch (error) {
     console.error("Discord prefix command failed:", error);
     await message.reply(
-      "I can’t reach the live office backend right now. Please check that the PowerDown server is running."
+      "I can’t reach the live office telemetry feed right now. Please check that the PowerDown mission control is running."
     );
   }
 }
@@ -227,10 +227,15 @@ function connectAlertStream(client: Client) {
     for (const alert of newAlerts) {
       await channel.send(
         [
-          alert.severity === "critical" ? "🚨 **Energy alert**" : "⚠️ **Usage alert**",
-          alert.message,
-          `Current office load: **${snapshot.totalWatts}W** · ${snapshot.activeDeviceCount}/${snapshot.totalDeviceCount} devices active.`,
-          "_Sent automatically from the same live backend as the PowerDown dashboard._"
+          alert.severity === "critical" 
+            ? "🚨 **CRITICAL MISSION CONTROL ALERT**" 
+            : "⚠️ **WARNING MISSION CONTROL ALERT**",
+          "──────────────────────────────",
+          `📍 **Event:** ${alert.message}`,
+          `⚡ **Active Office Load:** **${snapshot.totalWatts}W**`,
+          `🔌 **Active Devices:** ${snapshot.activeDeviceCount} of ${snapshot.totalDeviceCount} running`,
+          "──────────────────────────────",
+          "_*Real-time alert dispatched automatically from Office Mission Control._"
         ].join("\n")
       );
     }

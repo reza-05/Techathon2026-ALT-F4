@@ -6,6 +6,8 @@ interface KpiCardProps {
   value: string;
   meta: string;
   tone?: "default" | "neutral" | "danger";
+  iconColor?: string;
+  iconBg?: string;
 }
 
 export function KpiCard({
@@ -13,12 +15,17 @@ export function KpiCard({
   label,
   value,
   meta,
-  tone = "default"
+  tone = "default",
+  iconColor,
+  iconBg
 }: KpiCardProps) {
   return (
     <article className={`kpi-card kpi-card--${tone}`}>
       <div className="kpi-card__header">
-        <span className="kpi-card__icon">
+        <span className="kpi-card__icon" style={{
+          background: iconBg,
+          color: iconColor
+        }}>
           <Icon size={16} />
         </span>
         <span className="kpi-card__label">{label}</span>

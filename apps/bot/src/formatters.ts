@@ -3,19 +3,20 @@ import { getRoomDefinition, type OfficeSnapshot, type RoomId } from "@altf4/shar
 export function formatStatus(snapshot: OfficeSnapshot): string {
   const roomLines = snapshot.rooms.map((room) => {
     if (room.activeDevices === 0) {
-      return `• **${room.name}:** everything is off`;
+      return `  ├─ **${room.name}** · All systems stand by (0W)`;
     }
-    return `• **${room.name}:** ${room.activeFans} fan${room.activeFans === 1 ? "" : "s"} and ${room.activeLights} light${room.activeLights === 1 ? "" : "s"} on`;
+    return `  ├─ **${room.name}** · ${room.activeLights} Light${room.activeLights === 1 ? "" : "s"}, ${room.activeFans} Fan${room.activeFans === 1 ? "" : "s"} active · **${room.currentWatts}W**`;
   });
 
   return [
-    "🏢 **Here’s the live office check:**",
+    "🏢 **OFFICE SYSTEM STATUS**",
+    "──────────────────────────────",
     ...roomLines,
-    "",
-    `⚡ ${snapshot.activeDeviceCount}/${snapshot.totalDeviceCount} devices are active, drawing **${snapshot.totalWatts}W** in total.`,
+    "──────────────────────────────",
+    `⚡ **Active Devices:** ${snapshot.activeDeviceCount} of ${snapshot.totalDeviceCount} running · **${snapshot.totalWatts}W** total draw`,
     snapshot.activeAlerts.length
-      ? `⚠️ I’m also watching ${snapshot.activeAlerts.length} active alert${snapshot.activeAlerts.length === 1 ? "" : "s"}.`
-      : "✅ No unusual usage detected right now."
+      ? `🚨 **Active Alerts:** ${snapshot.activeAlerts.length} issue${snapshot.activeAlerts.length === 1 ? "" : "s"} requiring attention`
+      : "🟢 **Monitoring:** All systems operating within normal parameters."
   ].join("\n");
 }
 
@@ -25,34 +26,39 @@ export function formatRoom(snapshot: OfficeSnapshot, roomId: RoomId): string {
   const definition = getRoomDefinition(roomId);
 
   if (!room) {
-    return "I couldn’t find that room. Try Drawing Room, Work Room 1, or Work Room 2.";
+    return "❌ **Invalid Query:** Please specify: Drawing Room, Work Room 1, or Work Room 2.";
   }
 
   const deviceLines = devices.map(
     (device) =>
-      `${device.isOn ? "🟢" : "⚫"} ${device.name}: **${device.isOn ? "ON" : "OFF"}**${device.isOn ? ` · ${device.currentWatts}W` : ""}`
+      `  ${device.isOn ? "🟢" : "⚫"} **${device.name}** · ${device.isOn ? "Active" : "Idle"} · ${device.isOn ? `**${device.currentWatts}W**` : "0W"}`
   );
 
   return [
-    `🚪 **${definition.name}** · ${definition.purpose}`,
+    `🚪 **ROOM METRICS · ${definition.name.toUpperCase()}**`,
+    `_*${definition.purpose}*_`,
+    "──────────────────────────────",
     ...deviceLines,
-    "",
-    `Right now this room is drawing **${room.currentWatts}W** with ${room.activeDevices}/5 devices active.`
+    "──────────────────────────────",
+    `⚡ **Current Room Load:** ${room.currentWatts}W · ${room.activeDevices} of 5 active devices.`
   ].join("\n");
 }
 
 export function formatUsage(snapshot: OfficeSnapshot): string {
   const roomLines = snapshot.rooms.map(
-    (room) => `• ${room.name}: **${room.currentWatts}W**`
+    (room) => `  ├─ **${room.name}** · ${room.currentWatts}W`
   );
 
   return [
-    "⚡ **Live energy brief:**",
-    `The office is drawing **${snapshot.totalWatts}W** right now.`,
+    "⚡ **OFFICE ENERGY METRICS BRIEF**",
+    "──────────────────────────────",
+    `🔋 **Total Real-Time Load:** **${snapshot.totalWatts}W**`,
     ...roomLines,
-    "",
-    `Today’s integrated usage is **${snapshot.todayEnergyKwh.toFixed(2)} kWh** (about **৳${snapshot.estimatedCostBdt.toFixed(2)}**).`,
-    "These figures come from the same live backend as the dashboard."
+    "──────────────────────────────",
+    `📉 **Today's Consumption:** **${snapshot.todayEnergyKwh.toFixed(2)} kWh**`,
+    `💸 **Projected Daily Cost:** **৳${snapshot.estimatedCostBdt.toFixed(2)} BDT**`,
+    "──────────────────────────────",
+    "_Values synchronized in real-time with the main telemetry dashboard._"
   ].join("\n");
 }
 
