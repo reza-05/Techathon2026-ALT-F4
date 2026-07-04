@@ -13,54 +13,7 @@ PowerDown offers a unified, real-time telemetry dashboard and automated alerts f
 
 Our central telemetry server handles the single source of truth for the office. Web and chat services query and listen to this server to synchronize their views.
 
-```text
-                     ┌───────────────────────────────────┐
-                     │     PowerDown Telemetry Server    │
-                     │  (Express API + Socket.IO Stream) │
-                     └─────────────────┬─────────────────┘
-                                       │
-                ┌──────────────────────┼──────────────────────┐
-                ▼                      ▼                      ▼
-    ┌──────────────────────┐ ┌──────────────────┐ ┌──────────────────────┐
-    │  Real-Time Web App   │ │  Discord Bot     │ │    Wokwi Hardware    │
-    │  (React / Light UI)  │ │  (!status/Alert) │ │  (ESP32 + Relays RX) │
-    └──────────────────────┘ └──────────────────┘ └──────────────────────┘
-```
-
----
-
-## 🔄 System Flow Diagrams
-
-### **User Device Toggle & Alert Dispatch Cycles**
-
-```mermaid
-sequenceDiagram
-    autonumber
-    actor Boss as The Boss / Operator
-    participant Web as Web Dashboard
-    participant Server as Telemetry Server
-    participant DBot as Discord Telemetry Bot
-    participant DC as Discord Alert Channel
-
-    %% Toggle Flow
-    Note over Boss,Server: User Device Toggle Flow
-    Boss->>Web: Clicks toggle switch on floorplan
-    Web->>Server: POST /api/devices/:id/toggle
-    Server->>Server: Update device status & recalculate load
-    Server-->>Web: Broadcast updated "snapshot" (Socket.IO)
-    Web-->>Web: Re-render UI & recalculate power consumption
-
-    %% Alert Flow
-    Note over Server,DC: Alert Evaluator & Discord Dispatch Flow
-    Server->>Server: Run periodic evaluator checks
-    alt Alert Condition Met (e.g., Active devices after 5 PM)
-        Server->>Server: Create timestamped alert object (active: true)
-        Server-->>Web: Broadcast updated "snapshot" (Socket.IO)
-        Web-->>Web: Shift dashboard UI into alert state (glowing red alerts)
-        Server->>DBot: Push new alert event (Socket.IO stream)
-        DBot->>DC: Send premium alert message (🚨 CRITICAL MISSION CONTROL ALERT)
-    end
-```
+![PowerDown system architecture](docs/architecture/system-architecture.svg)
 
 ---
 
