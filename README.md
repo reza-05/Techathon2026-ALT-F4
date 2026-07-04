@@ -1,219 +1,213 @@
-# PowerDown
+# 🏢 PowerDown
 
-### A real-time office energy digital twin by Team ALT+F4
+### **Real-Time Office Energy Digital Twin & Telemetry Monitor**
+*Built with passion by **Team ALT+F4** for the Techathon Nationals 2026.*
 
-PowerDown gives a small office one synchronized view of every light, fan and
-energy anomaly. A live web dashboard and a Discord bot both read from the same
-backend, so the numbers never disagree.
+PowerDown offers a unified, real-time telemetry dashboard and automated alerts for a modern small office workspace. By synchronizing every device state, power reading, and alert lifecycle through a single central telemetry server, it guarantees that web clients, Discord bots, and automated monitors always display identical, matching figures.
 
-> **Official correction:** the office has 3 rooms × (2 fans + 3 lights) =
-> **15 devices total**. References to 18 devices in the supplied PDF are stale
-> arithmetic errors, confirmed by the organizer's correction email.
+> 📝 **Official Correction Note:** The simulated office consists of exactly 3 rooms × (2 fans + 3 lights) = **15 devices total**. Stale references to 18 devices inside the original PDF specifications are confirmed arithmetic errors, rectified in the organizer's follow-up corrections.
 
-![PowerDown system architecture](docs/architecture/system-architecture.svg)
+---
 
-## Problem understanding
+## 🗺️ System Architecture
 
-Employees sometimes leave lights and fans running after work. The boss needs:
-
-- A live room-by-room device status view without page refreshes.
-- Current office power and per-room breakdowns.
-- Timestamped alerts for devices left on after 5 PM or an entire room running
-  continuously for more than two hours.
-- Friendly Discord answers backed by the same current state.
-- A representative, electrically sensible hardware concept.
-
-## Solution approach
-
-The backend owns the only mutable device store. A deterministic simulator
-produces realistic state transitions and integrates wattage over simulated time.
-Socket.IO broadcasts a versioned snapshot to the dashboard, while the Discord
-bot queries the same REST API. The alert engine also publishes newly triggered
-alerts to a configured Discord channel.
-
-The simulator uses 60W per fan and 15W per light. Therefore the mathematically
-consistent maximum office load is:
+Our central telemetry server handles the single source of truth for the office. Web and chat services query and listen to this server to synchronize their views.
 
 ```text
-(6 fans × 60W) + (9 lights × 15W) = 495W
+                     ┌───────────────────────────────────┐
+                     │     PowerDown Telemetry Server    │
+                     │  (Express API + Socket.IO Stream) │
+                     └─────────────────┬─────────────────┘
+                                       │
+                ┌──────────────────────┼──────────────────────┐
+                ▼                      ▼                      ▼
+    ┌──────────────────────┐ ┌──────────────────┐ ┌──────────────────────┐
+    │  Real-Time Web App   │ │  Discord Bot     │ │    Wokwi Hardware    │
+    │  (React / Light UI)  │ │  (!status/Alert) │ │  (ESP32 + Relays RX) │
+    └──────────────────────┘ └──────────────────┘ └──────────────────────┘
 ```
 
-## Highlights
+---
 
-- Interactive top-view office digital twin
-- Glowing ON lights and animated running fans
-- 15 devices organized across exactly three rooms
-- Real-time Socket.IO synchronization
-- Live watts, integrated kWh, estimated cost and room breakdowns
-- Deterministic but believable office-hour simulation frames
-- Dedicated After-hours, 2-hour Anomaly and Close Office scenarios
-- Timestamped, deduplicated alert lifecycle
-- Discord `!status`, `!room`, `!usage` plus slash-command support
-- Proactive Discord channel alerts
-- Optional OpenAI-powered natural-language bot replies
-- ESP32 + five isolated relay channel Wokwi design
-- Responsive UI and reduced-motion accessibility support
+## 🔄 System Flow Diagrams
 
-## Technology stack
+### **User Device Toggle & Alert Dispatch Cycles**
 
-| Layer | Technology |
-|---|---|
-| Dashboard | React, Vite, TypeScript, CSS |
-| Backend | Node.js, Express, TypeScript |
-| Realtime transport | Socket.IO |
-| Discord integration | discord.js |
-| Validation and tests | TypeScript, Vitest, Supertest |
-| Hardware concept | ESP32, Wokwi, relay-isolated loads |
-| Monorepo tooling | pnpm workspaces |
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Boss as The Boss / Operator
+    participant Web as Web Dashboard
+    participant Server as Telemetry Server
+    participant DBot as Discord Telemetry Bot
+    participant DC as Discord Alert Channel
 
-## Repository structure
+    %% Toggle Flow
+    Note over Boss,Server: User Device Toggle Flow
+    Boss->>Web: Clicks toggle switch on floorplan
+    Web->>Server: POST /api/devices/:id/toggle
+    Server->>Server: Update device status & recalculate load
+    Server-->>Web: Broadcast updated "snapshot" (Socket.IO)
+    Web-->>Web: Re-render UI & recalculate power consumption
+
+    %% Alert Flow
+    Note over Server,DC: Alert Evaluator & Discord Dispatch Flow
+    Server->>Server: Run periodic evaluator checks
+    alt Alert Condition Met (e.g., Active devices after 5 PM)
+        Server->>Server: Create timestamped alert object (active: true)
+        Server-->>Web: Broadcast updated "snapshot" (Socket.IO)
+        Web-->>Web: Shift dashboard UI into alert state (glowing red alerts)
+        Server->>DBot: Push new alert event (Socket.IO stream)
+        DBot->>DC: Send premium alert message (🚨 CRITICAL MISSION CONTROL ALERT)
+    end
+```
+
+---
+
+## ⚡ Tech Stack
+
+| Layer | Technologies |
+|:---|:---|
+| **Frontend Dashboard** | React 18, Vite, Vanilla CSS, TypeScript |
+| **Telemetry Server** | Node.js, Express, Socket.IO, TypeScript |
+| **Notifications Bot** | Discord.js v14 |
+| **Validation & Tests** | TypeScript, Vitest, Supertest |
+| **Hardware Emulation** | ESP32 Microcontroller, Wokwi IoT Simulator |
+| **Monorepo Engine** | PNPM Workspaces |
+
+---
+
+## 📂 Repository Structure
 
 ```text
 apps/
-  web/       React realtime dashboard
-  server/    REST API, Socket.IO, simulator, energy and alert engines
-  bot/       Discord commands and proactive alerts
+  ├── web/         # React real-time telemetry dashboard (Locked in Light Mode)
+  ├── server/      # Express API, Socket.IO, and background simulation engine
+  └── bot/         # Discord bot listener and proactive channel dispatcher
 packages/
-  shared/    Shared device contracts, room definitions and seed data
-docs/
-  architecture/  Non-Mermaid system diagram
+  └── shared/      # Shared TypeScript interfaces, rooms/devices seeding schema
 hardware/
-  wokwi/     Representative one-room ESP32 circuit and firmware
+  └── wokwi/       # ESP32 sketch firmware and SPDT relay-isolated circuit diagrams
 ```
 
-## Setup
+---
 
-### Prerequisites
+## 🚀 Setup & Installation
 
-- Node.js 22.12 or newer
-- pnpm 9 or newer
-- A Discord application for bot features
+### **Prerequisites**
+- **Node.js** v22.12 or newer
+- **PNPM** v9 or newer
 
-### Installation
+### **Quick Start**
 
-```bash
-git clone https://github.com/reza-05/Techathon2026-ALT-F4.git
-cd Techathon2026-ALT-F4
-pnpm install
-cp .env.example .env
-pnpm dev
-```
+1. **Clone the Repository**
+   ```bash
+   git clone https://github.com/reza-05/Techathon2026-ALT-F4.git
+   cd Techathon2026-ALT-F4
+   ```
 
-Open `http://localhost:5173`. The API runs on `http://localhost:4000`.
+2. **Install Workspace Dependencies**
+   ```bash
+   pnpm install
+   ```
 
-The dashboard and backend can be run without Discord credentials:
+3. **Configure Environment Variables**
+   ```bash
+   cp .env.example .env
+   ```
+   *(Open `.env` in your editor to add any optional Discord bot credentials or OpenAI keys if desired).*
 
-```bash
-pnpm dev:core
-```
+4. **Launch the Telemetry Suite**
+   - **Full Stack (Server + Web + Bot):**
+     ```bash
+     pnpm dev
+     ```
+   - **Core Only (Server + Web, bypasses Discord Bot):**
+     ```bash
+     pnpm dev:core
+     ```
 
-## Environment variables
+5. **Access the Telemetry Feeds**
+   - Live Dashboard: `http://localhost:5173`
+   - REST API Telemetry: `http://localhost:4000`
 
-| Variable | Required | Purpose |
-|---|---|---|
-| `PORT` | No | API port, defaults to `4000` |
-| `WEB_ORIGIN` | No | Allowed dashboard origin |
-| `VITE_API_URL` | No | Browser-facing backend URL |
-| `DISCORD_TOKEN` | Bot | Discord bot token |
-| `DISCORD_CLIENT_ID` | Bot | Discord application ID |
-| `DISCORD_GUILD_ID` | No | Registers commands instantly in the demo server |
-| `DISCORD_ALERT_CHANNEL_ID` | No | Enables proactive alert messages |
-| `SERVER_API_URL` | No | Backend URL used by the bot |
-| `OPENAI_API_KEY` | No | Enables natural-language Discord replies via the Responses API |
-| `OPENAI_MODEL` | No | OpenAI model for bot replies, defaults to `gpt-5.5` |
+---
 
-Never commit the real `.env` file or Discord token.
+## 📡 API Endpoints
 
-## API endpoints
+Our server exposes clean REST endpoints to view and toggle telemetry states:
 
 | Method | Endpoint | Purpose |
-|---|---|---|
-| `GET` | `/health` | Service health |
-| `GET` | `/api/snapshot` | Complete versioned office state |
-| `GET` | `/api/devices` | All 15 current device states |
-| `GET` | `/api/rooms/:roomId` | One room and its five devices |
-| `GET` | `/api/usage` | Office and room power/energy totals |
-| `GET` | `/api/alerts` | Current active alerts |
-| `POST` | `/api/devices/:deviceId/toggle` | Simulate one physical state change |
-| `POST` | `/api/simulation/scenarios/:scenarioId` | Activate a deterministic demo |
+|:---|:---|:---|
+| `GET` | `/health` | Server health check |
+| `GET` | `/api/snapshot` | Complete versioned building state snapshot |
+| `GET` | `/api/devices` | State list of all 15 office devices |
+| `GET` | `/api/rooms/:roomId` | Specified room details and its 5 devices |
+| `GET` | `/api/usage` | Aggregated office and per-room power consumption |
+| `GET` | `/api/alerts` | Current active alerts (timestamped) |
+| `POST` | `/api/devices/:deviceId/toggle` | Toggle device state (simulating physical switches) |
+| `POST` | `/api/simulation/scenarios/:scenarioId` | Switch active operating scenario |
 
-The Socket.IO server emits a `snapshot` event on connection and after every
-state transition. The `sequence` field lets consumers identify new snapshots.
+---
 
-## Discord setup
+## 🤖 Discord Integration
 
-1. Create an application and bot in the Discord Developer Portal.
-2. Copy `.env.example` to `.env` and add the token and application ID.
-3. Add `DISCORD_GUILD_ID` for immediate command registration during the demo.
-4. Invite the bot with `bot` and `applications.commands` scopes.
-5. Add `DISCORD_ALERT_CHANNEL_ID` to enable proactive warnings.
-6. Enable the Message Content intent in the Discord Developer Portal if you want `!status`, `!room`, and `!usage`.
-7. Add `OPENAI_API_KEY` if you want AI-generated replies instead of the built-in fallback formatter.
-8. Run `pnpm dev`.
+Our Discord telemetry bot responds to both prefix commands (`!`) and modern Slash Commands (`/`).
 
-The bot reads actual backend data for both slash commands and prefix commands;
-no wattage or device status is hardcoded into a response. If `OPENAI_API_KEY`
-is present, the wording is generated through the OpenAI Responses API while the
-numbers still come from the backend snapshot.
+### **Setup Instructions**
+1. Register a bot application on the [Discord Developer Portal](https://discord.com/developers/applications).
+2. Enable **Message Content Intent** (under Bot tab) to support prefix commands.
+3. Invite the bot to your guild using the `applications.commands` and `bot` URL generator scopes.
+4. Set the credentials in your local `.env` variables:
+   - `DISCORD_TOKEN`: Bot token
+   - `DISCORD_CLIENT_ID`: Application client ID
+   - `DISCORD_GUILD_ID`: Target server ID (registers Slash commands instantly)
+   - `DISCORD_ALERT_CHANNEL_ID`: Channel where critical event warnings will be pushed
 
-## Simulation scenarios
+### **Available Chat Commands**
+- `/status` or `!status`: Real-time report of active rooms and device counts.
+- `/usage` or `!usage`: Power breakdown, today's integrated consumption (kWh), and cost estimate in BDT.
+- `/room <name>` or `!room <name>`: In-depth check of individual room devices and power draw.
 
-| Scenario | Demonstrates |
-|---|---|
-| Normal day | Dynamic room activity and live power changes during office hours |
-| After-hours leak | Work Room 2 left running at 8:30 PM |
-| 2-hour anomaly | Every Work Room 1 device continuously ON for 2h 30m |
-| Close office | All devices OFF and active alerts resolved |
+---
 
-All office-hour rules use the `Asia/Dhaka` timezone, independent of the machine
-running the server.
+## ⚙️ Operating Scenarios
 
-## Hardware design
+You can toggle between different operating states on the dashboard to test the alerts:
 
-The [`hardware/wokwi`](hardware/wokwi) directory contains:
+1. **Office Open (`NORMAL_DAY`):** 9 AM - 5 PM simulated hours. Random employee activity turns devices ON and OFF.
+2. **After-Hours Leak (`AFTER_HOURS_LEAK`):** Office is closed, but devices are intentionally left active, triggering an immediate alert.
+3. **2-Hour Anomaly (`TWO_HOUR_ANOMALY`):** Triggers a critical warning when all devices in a room remain active for over two continuous hours.
+4. **Closed Idle (`CLOSED_IDLE`):** Office is closed and all devices are turned off. The system enters idle monitoring.
 
-- `diagram.json` - ESP32, five SPDT state inputs, five isolated relay channels
-  and five representative low-voltage loads.
-- `sketch.ino` - state reading, relay control, realistic watts and JSON telemetry.
-- `README.md` - pin mapping, wiring rationale and electrical safety notes.
+---
 
-The representative room is repeated three times in a real installation. The
-browser simulation intentionally uses low-voltage indicators; mains fan circuits
-require correctly rated contactors and qualified electrical installation.
+## 🛠️ Hardware Simulation
 
-## Validation
+The [`hardware/wokwi`](hardware/wokwi) directory models a single-room deployment:
+- **`sketch.ino`**: ESP32 C++ firmware reading physical SPDT inputs, managing relay triggers, calculating wattage, and transmitting structured telemetry payload over Serial JSON.
+- **`diagram.json`**: Hardware wiring blueprint showing ESP32 connections with relay channels, input switches, and power loads.
+
+---
+
+## 🧪 Testing & Code Quality
+
+Verify codebase type safety, logic criteria, and test assertions:
 
 ```bash
+# Run TypeScript compilation check
 pnpm typecheck
+
+# Run Vitest unit tests (alert timestamp validation, power logic, timezone checks)
 pnpm test
+
+# Run production compilation build
 pnpm build
 ```
 
-Automated tests verify:
+---
 
-- Exactly 15 devices and 5 devices per room
-- Power derived from actual active states
-- After-hours alert detection
-- Continuous two-hour room alert detection
-- Stable alert timestamps across later snapshots
+## 👥 The Team
 
-The dashboard has also been smoke-tested at desktop width for:
-
-- Live Socket.IO connection
-- Scenario-triggered alert display
-- Device toggle → immediate watt update
-- Zero browser console errors
-
-## Demo sequence
-
-1. Show the normal live dashboard and animated devices.
-2. Select **After-hours leak**.
-3. Point out the immediate 165W total and timestamped alert.
-4. Show the proactive Discord alert.
-5. Run `/status`, `/room` and `/usage`.
-6. Toggle one fan and show both interfaces reflect the new 105W value.
-7. Briefly show the architecture diagram and representative Wokwi circuit.
-
-## Team
-
-Built for Techathon Nationals 2026 by **Team ALT+F4**.
+Designed and developed by **Team ALT+F4**:
+- **Reza** ([github.com/reza-05](https://github.com/reza-05))
