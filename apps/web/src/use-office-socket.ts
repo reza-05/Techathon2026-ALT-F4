@@ -49,6 +49,26 @@ export function useOfficeSocket() {
   }, []);
 
   async function toggleDevice(deviceId: string) {
+    // Optimistic UI Update: toggle state locally immediately for instant 0ms visual response
+    setSnapshot((prev) => {
+      if (!prev) return prev;
+      const updatedDevices = prev.devices.map((device) => {
+        if (device.id === deviceId) {
+          return { ...device, isOn: !device.isOn };
+        }
+        return device;
+      });
+      const currentPowerWatts = updatedDevices.reduce(
+        (sum, d) => sum + (d.isOn ? d.watts : 0),
+        0
+      );
+      return {
+        ...prev,
+        devices: updatedDevices,
+        currentPowerWatts
+      };
+    });
+
     setTogglingIds((current) => (current.includes(deviceId) ? current : [...current, deviceId]));
     try {
       const response = await fetch(`${API_URL}/api/devices/${deviceId}/toggle`, {
@@ -59,6 +79,12 @@ export function useOfficeSocket() {
       }
       const nextSnapshot = (await response.json()) as OfficeSnapshot;
       setSnapshot(nextSnapshot);
+    } catch {
+      // Revert to canonical server snapshot if request fails
+      fetch(`${API_URL}/api/snapshot`)
+        .then((r) => r.json() as Promise<OfficeSnapshot>)
+        .then(setSnapshot)
+        .catch(() => {});
     } finally {
       setTogglingIds((current) => current.filter((id) => id !== deviceId));
     }
