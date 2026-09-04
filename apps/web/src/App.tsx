@@ -14,7 +14,7 @@ export function App() {
         <div className="loading-panel">
           <span className="loading-mark"><Zap size={18} /></span>
           <h1>Connecting to Office Mission Control</h1>
-          <p>Synchronizing live building telemetry feed...</p>
+          <p>Synchronizing live building telemetry feed (Waking up server if idle)...</p>
         </div>
       </main>
     );

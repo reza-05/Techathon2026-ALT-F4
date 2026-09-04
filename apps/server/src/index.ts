@@ -32,12 +32,23 @@ const simulationTimer = setInterval(() => {
   store.runAutomaticStep();
 }, 1_000);
 
+// Automatic Keep-Alive pulse to keep Render free tier server awake 24/7
+const keepAliveTarget = process.env.RENDER_EXTERNAL_URL ?? "https://techathon2026-alt-f4.onrender.com";
+const keepAliveTimer = setInterval(() => {
+  if (keepAliveTarget) {
+    fetch(`${keepAliveTarget}/health`)
+      .then(() => console.log(`[Keep-Alive Pulse] Pinged ${keepAliveTarget}/health`))
+      .catch(() => {});
+  }
+}, 5 * 60 * 1000); // 5-minute interval pulse
+
 httpServer.listen(port, () => {
   console.log(`PowerDown API listening on http://localhost:${port}`);
 });
 
 function shutdown() {
   clearInterval(simulationTimer);
+  clearInterval(keepAliveTimer);
   io.close();
   httpServer.close(() => process.exit(0));
 }
